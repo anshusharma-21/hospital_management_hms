@@ -1,31 +1,47 @@
-const mongoose = require('mongoose');
+const dns = require('dns');
 
-let mongodInstance = null;
+// Use reliable DNS servers for MongoDB Atlas SRV resolution
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
+const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const connUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hospital_vision_hms';
-    const conn = await mongoose.connect(connUri, {
-      serverSelectionTimeoutMS: 2000
-    });
-    console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
-  } catch (error) {
-    console.log(`[MongoDB] Local daemon not responding. Initializing embedded high-performance MongoMemoryServer...`);
-    try {
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      mongodInstance = await MongoMemoryServer.create({
-        instance: { dbName: 'hospital_vision_hms' }
-      });
-      const uri = mongodInstance.getUri();
-      const conn = await mongoose.connect(uri);
-      console.log(`[MongoDB] Embedded MongoMemoryServer connected at: ${uri}`);
+    const connUri = process.env.MONGODB_URI;
 
-      // Run automatic seed data
-      const { seedDatabase } = require('../utils/seedData');
-      await seedDatabase();
-    } catch (memErr) {
-      console.error('[MongoDB] Error starting MongoMemoryServer:', memErr.message);
+    if (!connUri) {
+      throw new Error('MONGODB_URI is not configured.');
     }
+
+    console.log('[MongoDB] Attempting database connection...');
+
+    // Hide password from logs
+    const safeUri = connUri.replace(/:([^:@]+)@/, ':****@');
+
+    console.log('[MongoDB] Using URI:', safeUri);
+
+    const conn = await mongoose.connect(connUri, {
+      serverSelectionTimeoutMS: 10000,
+    });
+
+    console.log(
+      `[MongoDB] Connected successfully to host: ${conn.connection.host}`
+    );
+
+    console.log(
+      `[MongoDB] Database: ${conn.connection.name}`
+    );
+
+    console.log(
+      '[MongoDB] MongoDB Atlas connection successful.'
+    );
+
+  } catch (error) {
+    console.error('[MongoDB] Database connection failed.');
+    console.error('[MongoDB] Error:', error.message);
+
+    
+    process.exit(1);
   }
 };
 
