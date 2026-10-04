@@ -1,0 +1,27 @@
+{
+  "name": "hospital-vision-backend",
+  "version": "1.0.0",
+  "description": "Hospital Vision Multi-Tenant HMS Backend (Node.js/Express + MongoDB)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "seed": "node src/utils/seedData.js",
+    "test": "node --test test/*.test.js",
+    "test:phase1": "node --test test/phase1_p0_fixes_and_rbac.test.js",
+    "test:phase3": "node --test test/phase3_4_5_gap_closure_master.test.js",
+    "test:master": "npm run test:phase1 && npm run test:phase3"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0"
+  }
+}
