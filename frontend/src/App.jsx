@@ -137,9 +137,9 @@ const PatientProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-teal-400 font-medium text-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-teal-800 font-semibold text-sm">
+        <div className="flex items-center space-x-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/90 shadow-sm">
+          <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
           <span>Verifying Patient Identity...</span>
         </div>
       </div>
@@ -204,7 +204,7 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 flex flex-col font-sans antialiased selection:bg-teal-100 selection:text-teal-900">
       <Navbar onOpenSearch={() => setIsSearchOpen(true)} />
       
       <div className="flex flex-1">

@@ -38,48 +38,8 @@ export const RadiologyWorklist = () => {
       }
     } catch (err) {
       console.error(err);
-      // Realistic fallback demo studies
-      setStudies([
-        {
-          _id: 'RAD-001',
-          orderNumber: 'RAD-2026-0041',
-          accessionNumber: 'ACC-88391',
-          patient: { fullName: 'Rahul Sharma', uhid: 'HV-2026-0001', age: 34, gender: 'Male' },
-          modality: 'CT',
-          studyName: 'HRCT Chest (High Resolution Non-Contrast)',
-          scheduledTime: 'Today 11:30 AM',
-          technician: 'Ramesh (CT Tech)',
-          priority: 'Urgent',
-          status: 'acquired',
-          hasDicomImages: true
-        },
-        {
-          _id: 'RAD-002',
-          orderNumber: 'RAD-2026-0042',
-          accessionNumber: 'ACC-88392',
-          patient: { fullName: 'Ananya Patel', uhid: 'HV-2026-0002', age: 29, gender: 'Female' },
-          modality: 'USG',
-          studyName: 'Ultrasound Whole Abdomen & Pelvis',
-          scheduledTime: 'Today 01:15 PM',
-          technician: 'Swati (Sonographer)',
-          priority: 'Routine',
-          status: 'scheduled',
-          hasDicomImages: false
-        },
-        {
-          _id: 'RAD-003',
-          orderNumber: 'RAD-2026-0043',
-          accessionNumber: 'ACC-88393',
-          patient: { fullName: 'Kishan Lalwani', uhid: 'HV-2026-0003', age: 52, gender: 'Male' },
-          modality: 'X-RAY',
-          studyName: 'Chest PA View Erect Digital Radiography',
-          scheduledTime: 'Today 10:00 AM',
-          technician: 'Vikas (X-Ray Tech)',
-          priority: 'STAT',
-          status: 'reported',
-          hasDicomImages: true
-        }
-      ]);
+      setStudies([]);
+      addToast('Failed to load radiology worklist', 'error');
     } finally {
       setLoading(false);
     }
@@ -119,10 +79,10 @@ export const RadiologyWorklist = () => {
           <button
             key={mod}
             onClick={() => setActiveModality(mod)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               activeModality === mod 
-                ? 'bg-teal-600 text-white shadow-sm shadow-teal-600/30'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-teal-800 text-white shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90'
             }`}
           >
             {mod === 'ALL' ? 'All Modalities' : mod}

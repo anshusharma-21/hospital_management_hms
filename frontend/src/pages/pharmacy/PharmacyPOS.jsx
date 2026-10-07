@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -24,6 +25,7 @@ import { Select } from '../../components/ui/Select';
 
 export const PharmacyPOS = () => {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [prescriptions, setPrescriptions] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [selectedRx, setSelectedRx] = useState(null);
@@ -200,18 +202,18 @@ export const PharmacyPOS = () => {
                       key={rx._id}
                       onClick={() => handleSelectPrescription(rx)}
                       className={`p-3.5 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-teal-50/90 border-l-4 border-teal-600' : 'hover:bg-slate-50'
+                        isSelected ? 'bg-teal-50/90 border-l-4 border-teal-800' : 'hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-mono font-bold text-teal-700 text-xs">{rx.prescriptionNumber}</span>
+                        <span className="font-mono font-bold text-teal-800 text-xs">{rx.prescriptionNumber}</span>
                         <span className="text-[10px] text-slate-400 font-medium">
                           {new Date(rx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       <p className="font-bold text-slate-900 text-xs">{rx.patient?.fullName}</p>
                       <p className="font-mono text-[10px] text-slate-400">{rx.patient?.uhid}</p>
-                      <p className="text-[11px] text-slate-500 mt-1">Prescribed by {rx.doctor?.name || 'Dr. Arun Sharma'}</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Prescribed by {rx.doctor?.name ? (rx.doctor.name.startsWith('Dr.') ? rx.doctor.name : `Dr. ${rx.doctor.name}`) : 'Attending Physician'}</p>
                     </div>
                   );
                 })
@@ -228,7 +230,7 @@ export const PharmacyPOS = () => {
               <div className="p-3 bg-teal-50/80 rounded-xl border border-teal-200 mb-4 flex justify-between items-center text-xs">
                 <div>
                   <p className="font-bold text-teal-900">{selectedRx.patient?.fullName} ({selectedRx.patient?.uhid})</p>
-                  <p className="text-teal-700">Rx: {selectedRx.prescriptionNumber} • Dr. {selectedRx.doctor?.name || 'Arun Sharma'}</p>
+                  <p className="text-teal-700">Rx: {selectedRx.prescriptionNumber} • {selectedRx.doctor?.name ? (selectedRx.doctor.name.startsWith('Dr.') ? selectedRx.doctor.name : `Dr. ${selectedRx.doctor.name}`) : 'Attending Physician'}</p>
                 </div>
                 <Badge variant="success">Prescription Verified</Badge>
               </div>
@@ -302,10 +304,10 @@ export const PharmacyPOS = () => {
                         key={mode}
                         type="button"
                         onClick={() => setPaymentMode(mode)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                        className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
                           paymentMode === mode 
-                            ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            ? 'bg-teal-800 text-white border-teal-800 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50'
                         }`}
                       >
                         {mode}
@@ -369,9 +371,18 @@ export const PharmacyPOS = () => {
           <div className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-mono space-y-2">
               <div className="text-center pb-2 border-b border-dashed border-slate-300">
-                <h3 className="font-bold text-slate-900 text-sm">LIFELINE SUPER-SPECIALTY HOSPITAL</h3>
-                <p className="text-[10px] text-slate-500">Licensed Pharmacy & Chemist • DL No: MH-MZ2-4410</p>
-                <p className="text-[10px] text-slate-500">Sector 18, Mumbai • Tel: 022-28405000</p>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  {user?.tenant?.name || 'Hospital Vision Pharmacy'}
+                </h3>
+                <p className="text-[10px] text-slate-500">
+                  {user?.branch?.name || 'Licensed Pharmacy & Chemist'}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {[
+                    user?.branch?.address?.city || user?.tenant?.address?.city,
+                    user?.branch?.phone || user?.tenant?.phone ? `Tel: ${user?.branch?.phone || user?.tenant?.phone}` : null
+                  ].filter(Boolean).join(' • ')}
+                </p>
               </div>
 
               <div className="flex justify-between text-[11px]">

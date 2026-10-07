@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ALLOWED_PLAN_ENUMS, normalizePlan } = require('../constants/subscriptionPlans');
 
 const tenantSchema = new mongoose.Schema({
   name: {
@@ -38,8 +39,9 @@ const tenantSchema = new mongoose.Schema({
   subscription: {
     plan: {
       type: String,
-      enum: ['Basic', 'Professional', 'Business', 'Starter (Up to 25 Beds)', 'Professional (Up to 100 Beds)', 'Enterprise (500+ Beds)', 'Custom'],
-      default: 'Professional'
+      set: (val) => normalizePlan(val),
+      enum: ALLOWED_PLAN_ENUMS,
+      default: 'Professional (Up to 100 Beds)'
     },
     status: {
       type: String,

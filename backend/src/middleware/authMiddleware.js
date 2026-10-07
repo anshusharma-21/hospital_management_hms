@@ -22,7 +22,9 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, getJwtSecret());
 
-    const user = await User.findById(decoded.id).populate('tenant', 'name slug subscription status branding settings');
+    const user = await User.findById(decoded.id)
+      .populate('tenant', 'name legalName slug subscription status branding settings email phone address hospitalType website')
+      .populate('branch', 'name code bedCapacity address phone email branchType isMain');
 
     if (!user) {
       return res.status(401).json({ success: false, error: 'User account not found' });

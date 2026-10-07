@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -21,6 +22,7 @@ import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '.
 
 export const LabSampleCollection = () => {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [pendingOrders, setPendingOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -28,9 +30,9 @@ export const LabSampleCollection = () => {
   const [sampleDetails, setSampleDetails] = useState({
     tubeType: 'EDTA Lavender (Whole Blood)',
     sampleVolume: '3.0 mL',
-    site: 'Left Antecubital Fossa',
-    collectedBy: 'Staff Phlebotomist Sunita',
-    notes: 'Sample collected with minimal hemolysis'
+    site: '',
+    collectedBy: user?.name || 'Phlebotomy Technician',
+    notes: ''
   });
 
   useEffect(() => {
@@ -55,6 +57,10 @@ export const LabSampleCollection = () => {
 
   const handleOpenCollect = (ord) => {
     setSelectedOrder(ord);
+    setSampleDetails(prev => ({
+      ...prev,
+      collectedBy: user?.name || prev.collectedBy || 'Phlebotomy Technician'
+    }));
     setShowCollectModal(true);
   };
 

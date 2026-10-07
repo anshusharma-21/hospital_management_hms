@@ -14,6 +14,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -24,6 +25,7 @@ import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '.
 
 export const PaymentCollection = () => {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const targetInvoiceId = searchParams.get('invoiceId');
 
@@ -33,7 +35,7 @@ export const PaymentCollection = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [transactionRef, setTransactionRef] = useState('');
-  const [notes, setNotes] = useState('OPD Cashier Counter 1');
+  const [notes, setNotes] = useState('');
 
   // Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -299,9 +301,19 @@ export const PaymentCollection = () => {
           <div className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-mono space-y-2.5">
               <div className="text-center pb-2 border-b border-dashed border-slate-300">
-                <h3 className="font-bold text-slate-900 text-sm">LIFELINE SUPER-SPECIALTY HOSPITAL</h3>
-                <p className="text-[10px] text-slate-500">Official Patient Revenue & Collection Counter</p>
-                <p className="text-[10px] text-slate-500">Sector 18, Mumbai • GSTIN: 27AABCL1234F1Z9</p>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  {selectedInvoice?.tenant?.name || user?.tenant?.name || 'Hospital Vision'}
+                </h3>
+                <p className="text-[10px] text-slate-500">
+                  {selectedInvoice?.branch?.name || user?.branch?.name || 'Revenue & Collection Counter'}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {[
+                    selectedInvoice?.branch?.address?.city || user?.branch?.address?.city || user?.tenant?.address?.city,
+                    selectedInvoice?.branch?.address?.state || user?.branch?.address?.state || user?.tenant?.address?.state,
+                    user?.branch?.phone || user?.tenant?.phone ? `Tel: ${user?.branch?.phone || user?.tenant?.phone}` : null
+                  ].filter(Boolean).join(' • ')}
+                </p>
               </div>
 
               <div className="flex justify-between font-bold text-teal-800">

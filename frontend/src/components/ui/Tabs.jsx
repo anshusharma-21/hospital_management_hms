@@ -15,7 +15,7 @@ export const Tabs = ({ tabs = [], activeTab, onChange, variant = 'pills' }) => {
                 onClick={() => onChange(tab.id)}
                 className={`py-3 px-1 border-b-2 font-bold text-xs flex items-center gap-2 transition-all ${
                   isActive
-                    ? 'border-teal-600 text-teal-700'
+                    ? 'border-teal-700 text-teal-800'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
@@ -23,7 +23,7 @@ export const Tabs = ({ tabs = [], activeTab, onChange, variant = 'pills' }) => {
                 {tab.label}
                 {tab.count !== undefined && (
                   <span
-                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                       isActive ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-600'
                     }`}
                   >
@@ -39,7 +39,7 @@ export const Tabs = ({ tabs = [], activeTab, onChange, variant = 'pills' }) => {
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/80 w-fit">
+    <div className="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200/80 w-fit">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
@@ -48,10 +48,10 @@ export const Tabs = ({ tabs = [], activeTab, onChange, variant = 'pills' }) => {
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-2 ${
               isActive
-                ? 'bg-white text-teal-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-white text-teal-900 shadow-xs border border-slate-200/60 font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
             {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}

@@ -22,17 +22,17 @@ import { StatsCard } from '../../components/ui/StatsCard';
 export const SaasDashboard = () => {
   const { addToast } = useToast();
   const [stats, setStats] = useState({
-    totalTenants: 1,
-    activeTenants: 1,
-    totalUsers: 14,
-    totalPatients: 3,
-    totalBeds: 100,
-    mrr: 49000,
+    totalTenants: 0,
+    activeTenants: 0,
+    totalUsers: 0,
+    totalPatients: 0,
+    totalBeds: 0,
+    mrr: 0,
     systemHealth: {
       uptime: '99.99%',
       databaseLatency: '1.4ms',
       apiStatus: 'Healthy',
-      activeNodes: 3
+      activeNodes: 1
     }
   });
   const [loading, setLoading] = useState(true);
@@ -89,18 +89,18 @@ export const SaasDashboard = () => {
         <StatsCard 
           title="Active Hospital Tenants" 
           value={stats.activeTenants} 
-          subtitle="100% Operational Status"
+          subtitle="Operational Organizations"
           icon={<Building className="w-4 h-4 text-teal-600" />} 
         />
         <StatsCard 
           title="Monthly Recurring Revenue" 
-          value={`₹${stats.mrr?.toLocaleString()}`} 
-          subtitle="Annualized Run Rate: ₹5.88L"
+          value={`₹${(stats.mrr || 0).toLocaleString()}`} 
+          subtitle={stats.mrr ? `Annualized Run Rate: ₹${(stats.mrr * 12).toLocaleString()}` : 'Recurring subscription revenue'}
           icon={<TrendingUp className="w-4 h-4 text-emerald-600" />} 
         />
         <StatsCard 
           title="Licensed Hospital Beds" 
-          value={`${stats.totalBeds} Beds`} 
+          value={`${stats.totalBeds || 0} Beds`} 
           subtitle="Across All Client Hospitals"
           icon={<BedDouble className="w-4 h-4 text-indigo-600" />} 
         />

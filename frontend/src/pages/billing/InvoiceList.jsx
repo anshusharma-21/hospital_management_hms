@@ -34,13 +34,11 @@ export const InvoiceList = () => {
 
   // New Invoice Form
   const [newInv, setNewInv] = useState({
-    patientUhid: 'HV-2026-0001',
-    patientName: 'Rahul Sharma',
+    patientUhid: '',
+    patientName: '',
     billingType: 'OPD',
     department: 'General Medicine',
-    items: [
-      { description: 'Specialist Doctor Consultation Fee', quantity: 1, unitPrice: 800, total: 800 }
-    ],
+    items: [],
     discount: 0,
     tax: 0
   });
@@ -67,7 +65,7 @@ export const InvoiceList = () => {
   const handleAddItem = () => {
     setNewInv({
       ...newInv,
-      items: [...newInv.items, { description: 'Investigation / Service Charge', quantity: 1, unitPrice: 500, total: 500 }]
+      items: [...newInv.items, { description: '', quantity: 1, unitPrice: 0, total: 0 }]
     });
   };
 
@@ -97,12 +95,23 @@ export const InvoiceList = () => {
   const handleCreateInvoice = async (e) => {
     e.preventDefault();
     try {
+      if (!newInv.patientUhid?.trim()) {
+        addToast('Please enter the Patient UHID', 'warning');
+        return;
+      }
+      if (newInv.items.length === 0) {
+        addToast('Please add at least one line item to generate an invoice', 'warning');
+        return;
+      }
+
       // Find patient by UHID
-      const patRes = await api.get(`/patients?search=${newInv.patientUhid}`);
-      const patient = patRes.data.data?.[0];
+      const patRes = await api.get(`/patients?search=${encodeURIComponent(newInv.patientUhid.trim())}`);
+      const patient = patRes.data.data?.find(
+        (p) => p.uhid?.toLowerCase() === newInv.patientUhid.trim().toLowerCase()
+      ) || (patRes.data.data?.length === 1 ? patRes.data.data[0] : null);
 
       if (!patient) {
-        addToast('Patient with specified UHID not found', 'warning');
+        addToast(`Patient with UHID "${newInv.patientUhid}" not found`, 'warning');
         return;
       }
 
@@ -165,16 +174,16 @@ export const InvoiceList = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
         <div className="flex gap-2">
           {['ALL', 'UNPAID', 'PARTIAL', 'PAID'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 statusFilter === st 
-                  ? 'bg-teal-600 text-white' 
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-teal-800 text-white shadow-xs' 
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
               }`}
             >
               {st}
@@ -188,7 +197,7 @@ export const InvoiceList = () => {
             placeholder="Search invoice #, UHID, patient..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
           />
         </div>
       </div>

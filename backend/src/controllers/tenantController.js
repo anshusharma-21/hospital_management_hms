@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Tenant = require('../models/Tenant');
 const Branch = require('../models/Branch');
 const Department = require('../models/Department');
@@ -10,6 +11,7 @@ const tenantLifecycleService = require('../services/privacy/TenantLifecycleServi
 const fhirConverterService = require('../services/interop/FHIRConverterService');
 const hrmsService = require('../services/hrms/HRMSService');
 const aiService = require('../services/ai/AIService');
+const { normalizePlan, getPlanConfig, getPlanDefaultBeds } = require('../constants/subscriptionPlans');
 
 
 // @desc    Get all hospital tenants (SaaS Admin)
@@ -63,13 +65,34 @@ exports.createTenant = async (req, res, next) => {
     const phone = req.body.phone || req.body.adminPhone || req.body.adminUser?.phone;
     const address = req.body.address || {};
 
-    const subscriptionPlan = req.body.subscriptionPlan || req.body.subscription?.plan || 'Professional (Up to 100 Beds)';
-    const maxBeds = Number(
-      req.body.initialBedCapacity ||
-      req.body.initialBranch?.bedCapacity ||
-      req.body.subscription?.maxBeds ||
-      100
-    );
+    const rawSubscriptionPlan = req.body.subscriptionPlan || req.body.subscription?.plan || 'Professional (Up to 100 Beds)';
+    const subscriptionPlan = normalizePlan(rawSubscriptionPlan);
+    const planConfig = getPlanConfig(subscriptionPlan);
+
+    // 1. Tenant Licensed Max Beds (comes from subscription/license configuration)
+    const reqSubscriptionMaxBeds = req.body.subscription?.maxBeds !== undefined
+      ? Number(req.body.subscription.maxBeds)
+      : undefined;
+    const licensedMaxBeds = (reqSubscriptionMaxBeds !== undefined && !isNaN(reqSubscriptionMaxBeds) && reqSubscriptionMaxBeds > 0)
+      ? reqSubscriptionMaxBeds
+      : (planConfig?.defaultBeds || 100);
+
+    // 2. Initial Branch Bed Capacity (physical capacity of that specific branch)
+    const rawBranchCapacity = req.body.initialBranch?.bedCapacity !== undefined
+      ? req.body.initialBranch.bedCapacity
+      : req.body.initialBedCapacity;
+    const parsedBranchCapacity = rawBranchCapacity !== undefined ? Number(rawBranchCapacity) : NaN;
+    const branchBedCapacity = (!isNaN(parsedBranchCapacity) && parsedBranchCapacity > 0)
+      ? parsedBranchCapacity
+      : (licensedMaxBeds >= 100 ? 80 : licensedMaxBeds);
+
+    // Validate: Initial branch capacity cannot exceed tenant licensed capacity
+    if (branchBedCapacity > licensedMaxBeds) {
+      return res.status(400).json({
+        success: false,
+        error: `Initial branch bed capacity (${branchBedCapacity}) cannot exceed tenant licensed bed capacity (${licensedMaxBeds}).`
+      });
+    }
 
     const rawBranchName = req.body.mainBranchName || req.body.initialBranch?.name;
     const mainBranchName = typeof rawBranchName === 'string' && rawBranchName.trim()
@@ -147,7 +170,10 @@ exports.createTenant = async (req, res, next) => {
       address,
       subscription: {
         plan: subscriptionPlan,
-        maxBeds: isNaN(maxBeds) || maxBeds <= 0 ? 100 : maxBeds,
+        maxBeds: licensedMaxBeds,
+        maxBranches: req.body.subscription?.maxBranches || planConfig?.defaultBranches || 3,
+        maxUsers: req.body.subscription?.maxUsers || planConfig?.defaultUsers || 50,
+        billingCycle: req.body.subscription?.billingCycle || 'annual',
         status: req.body.subscription?.status || 'active'
       },
       status: 'active'
@@ -158,7 +184,9 @@ exports.createTenant = async (req, res, next) => {
       tenant: createdTenant._id,
       name: mainBranchName,
       code: mainBranchCode,
-      bedCapacity: isNaN(maxBeds) || maxBeds <= 0 ? 100 : maxBeds,
+      branchType: 'Main Hospital',
+      isMain: true,
+      bedCapacity: branchBedCapacity,
       hasEmergency,
       hasICU,
       hasOT
@@ -285,7 +313,7 @@ exports.createTenant = async (req, res, next) => {
 
 // @desc    Delete tenant and cascade cleanup (SaaS Super Admin only)
 // @route   DELETE /api/v1/tenants/:id
-// @access  Private (super_admin)
+// @access  Private (super_admin, saas_admin)
 exports.deleteTenant = async (req, res, next) => {
   try {
     const tenant = await Tenant.findById(req.params.id);
@@ -302,13 +330,31 @@ exports.deleteTenant = async (req, res, next) => {
       });
     }
 
+    // Execute strictly tenant-scoped cascade cleanup
+    const tenantScopedModels = [
+      'Branch', 'Department', 'User', 'FeatureFlag', 'AuditLog',
+      'Bed', 'Patient', 'Appointment', 'Encounter', 'Admission',
+      'Invoice', 'Payment', 'Prescription', 'LabOrder', 'RadiologyOrder',
+      'Medicine', 'OTRecord', 'EmergencyEncounter', 'NursingRecord', 'Vital',
+      'InsurancePolicy', 'CRMLead', 'CorporateAccount', 'DocumentTemplate',
+      'DocumentRegistry', 'NotificationTemplate', 'ApprovalRequest', 'Feedback',
+      'BarcodeReference'
+    ];
+
+    const deletePromises = tenantScopedModels.map(async (modelName) => {
+      try {
+        const Model = mongoose.models[modelName] || require(`../models/${modelName}`);
+        if (Model && typeof Model.deleteMany === 'function') {
+          return Model.deleteMany({ tenant: tenant._id });
+        }
+      } catch (_) {
+        // Silently skip if model is not registered or cannot be loaded
+      }
+    });
+
     await Promise.allSettled([
       Tenant.findByIdAndDelete(tenant._id),
-      Branch.deleteMany({ tenant: tenant._id }),
-      Department.deleteMany({ tenant: tenant._id }),
-      User.deleteMany({ tenant: tenant._id }),
-      FeatureFlag.deleteMany({ tenant: tenant._id }),
-      AuditLog.deleteMany({ tenant: tenant._id })
+      ...deletePromises
     ]);
 
     res.status(200).json({
@@ -353,6 +399,9 @@ exports.getTenantById = async (req, res, next) => {
 // @access  Private (hospital_admin, super_admin)
 exports.updateTenant = async (req, res, next) => {
   try {
+    if (req.body.subscription && req.body.subscription.plan) {
+      req.body.subscription.plan = normalizePlan(req.body.subscription.plan);
+    }
     const tenant = await Tenant.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -501,6 +550,38 @@ exports.createBranch = async (req, res, next) => {
       }
     }
 
+    // Enforce Tenant subscription bedCapacity limits
+    const tenantLicensedMaxBeds = Number(tenant.subscription?.maxBeds) || 100;
+    const isBedCapacityExplicit = bedCapacity !== undefined && bedCapacity !== null && bedCapacity !== '';
+    const requestedBedCapacity = isBedCapacityExplicit && !isNaN(Number(bedCapacity))
+      ? Number(bedCapacity)
+      : (resolvedBranchType === 'Diagnostic Center' ? 0 : 50);
+
+    if (requestedBedCapacity < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Branch bed capacity cannot be negative.'
+      });
+    }
+
+    if (requestedBedCapacity > tenantLicensedMaxBeds) {
+      return res.status(400).json({
+        success: false,
+        error: `Branch bed capacity (${requestedBedCapacity}) cannot exceed tenant licensed capacity (${tenantLicensedMaxBeds}).`
+      });
+    }
+
+    // Check SUM of all existing active branches
+    const existingBranches = await Branch.find({ tenant: tenantId, status: { $ne: 'deleted' } });
+    const currentAllocatedBeds = existingBranches.reduce((sum, b) => sum + (Number(b.bedCapacity) || 0), 0);
+
+    if (requestedBedCapacity > 0 && (currentAllocatedBeds + requestedBedCapacity > tenantLicensedMaxBeds)) {
+      return res.status(400).json({
+        success: false,
+        error: `Total branch bed capacity (${currentAllocatedBeds + requestedBedCapacity}) exceeds tenant licensed capacity (${tenantLicensedMaxBeds}). Current allocated: ${currentAllocatedBeds}, requested: ${requestedBedCapacity}, remaining: ${Math.max(0, tenantLicensedMaxBeds - currentAllocatedBeds)}.`
+      });
+    }
+
     const branch = await Branch.create({
       tenant: tenantId,
       name: name.trim(),
@@ -511,7 +592,7 @@ exports.createBranch = async (req, res, next) => {
       phone: phone ? phone.trim() : undefined,
       email: email ? email.trim().toLowerCase() : undefined,
       address: address || {},
-      bedCapacity: !isNaN(Number(bedCapacity)) ? Number(bedCapacity) : 50,
+      bedCapacity: requestedBedCapacity,
       hasEmergency: hasEmergency !== undefined ? Boolean(hasEmergency) : true,
       hasICU: hasICU !== undefined ? Boolean(hasICU) : true,
       hasOT: hasOT !== undefined ? Boolean(hasOT) : true

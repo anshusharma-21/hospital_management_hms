@@ -39,25 +39,8 @@ export const ApprovalsInbox = () => {
       }
     } catch (err) {
       console.error(err);
-      // Realistic fallback demo
-      setApprovals([
-        {
-          _id: 'app-1',
-          approvalType: 'discount',
-          details: { discountAmount: 1500, invoiceNumber: 'INV-2026-0042', patientName: 'Rahul Sharma', reason: 'Staff dependent concession authorized by Director' },
-          requestedBy: { name: 'Pooja Verma', role: 'receptionist' },
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'app-2',
-          approvalType: 'refund',
-          details: { refundAmount: 850, invoiceNumber: 'INV-2026-0019', patientName: 'Ananya Patel', reason: 'Ultrasound cancellation due to patient emergency' },
-          requestedBy: { name: 'Sanjay Kumar', role: 'billing_cashier' },
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      setApprovals([]);
+      addToast('Failed to load approvals', 'error');
     } finally {
       setLoading(false);
     }

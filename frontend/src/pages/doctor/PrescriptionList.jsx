@@ -6,8 +6,10 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { FileText, Printer, Stethoscope, Search, Pill } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export const PrescriptionList = () => {
+  const { user } = useAuth();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeRx, setActiveRx] = useState(null);
@@ -20,18 +22,8 @@ export const PrescriptionList = () => {
         const rxRes = await api.get('/clinical/prescriptions');
         if (rxRes.data?.success && rxRes.data?.data?.length > 0) {
           setPrescriptions(rxRes.data.data);
-          return;
-        }
-
-        // Fallback: Check patient timeline events if any
-        const pts = await api.get('/patients');
-        if (pts.data?.success && pts.data?.data?.length > 0) {
-          const pt = pts.data.data[0];
-          const tl = await api.get(`/patients/${pt._id}/timeline`);
-          if (tl.data?.success) {
-            const rxEvents = tl.data.timeline.filter((e) => e.type === 'PRESCRIPTION');
-            setPrescriptions(rxEvents);
-          }
+        } else {
+          setPrescriptions([]);
         }
       } catch (err) {
         console.error('Failed to load prescriptions:', err);
@@ -136,12 +128,18 @@ export const PrescriptionList = () => {
             <div className="border-b border-slate-200 pb-4 flex justify-between items-start">
               <div>
                 <h2 className="text-lg font-black text-slate-900">
-                  LIFELINE MULTI-SPECIALTY HOSPITAL
+                  {activeRx.tenant?.name || user?.tenant?.name || 'Hospital Vision'}
                 </h2>
-                <p className="text-xs text-slate-500">Sector 18, Health Boulevard, Mumbai • Phone: +91 22 2840 5000</p>
+                <p className="text-xs text-slate-500">
+                  {[
+                    activeRx.branch?.name || user?.branch?.name,
+                    activeRx.tenant?.address?.city || user?.tenant?.address?.city || user?.branch?.address?.city,
+                    activeRx.tenant?.phone || user?.tenant?.phone || user?.branch?.phone ? `Phone: ${activeRx.tenant?.phone || user?.tenant?.phone || user?.branch?.phone}` : null
+                  ].filter(Boolean).join(' • ')}
+                </p>
               </div>
               <span className="font-mono text-xs font-bold bg-teal-50 text-teal-800 px-2.5 py-1 rounded border border-teal-200 whitespace-nowrap">
-                {activeRx.prescriptionNumber || activeRx.title?.match(/\((.*?)\)/)?.[1] || 'RX-2026-0001'}
+                {activeRx.prescriptionNumber || activeRx.title?.match(/\((.*?)\)/)?.[1] || ''}
               </span>
             </div>
 
@@ -157,10 +155,12 @@ export const PrescriptionList = () => {
               <div className="text-right">
                 <p className="font-bold text-slate-800">
                   {activeRx.doctor?.name
-                    ? `Dr. ${activeRx.doctor.name.replace(/^Dr\.?\s*/i, '')}`
-                    : 'Dr. Arun Joshi, MD'}
+                    ? (activeRx.doctor.name.startsWith('Dr.') ? activeRx.doctor.name : `Dr. ${activeRx.doctor.name}`)
+                    : (user?.role === 'doctor' ? (user.name?.startsWith('Dr.') ? user.name : `Dr. ${user.name}`) : 'Attending Physician')}
                 </p>
-                <p className="text-[11px] text-slate-500">Reg. Number: MCI-2012-88741</p>
+                {activeRx.doctor?.doctorProfile?.registrationNumber && (
+                  <p className="text-[11px] text-slate-500">Reg. Number: {activeRx.doctor.doctorProfile.registrationNumber}</p>
+                )}
               </div>
             </div>
 

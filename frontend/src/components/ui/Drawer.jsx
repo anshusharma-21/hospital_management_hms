@@ -28,7 +28,7 @@ export const Drawer = ({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-200"
         onClick={onClose}
       />
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
@@ -37,14 +37,14 @@ export const Drawer = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
             <div>
-              {title && <h3 className="text-base font-bold text-slate-800">{title}</h3>}
+              {title && <h3 className="text-base font-bold text-slate-900 tracking-tight">{title}</h3>}
               {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

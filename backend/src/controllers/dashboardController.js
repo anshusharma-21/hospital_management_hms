@@ -68,7 +68,8 @@ exports.getDashboardStats = async (req, res, next) => {
       todayCollections,
       pendingLabOrders,
       criticalLabAlerts,
-      lowStockMedicines
+      lowStockMedicines,
+      activeDoctorsCount
     ] = await Promise.all([
       Patient.countDocuments({ tenant: tenantId, ...patientBranchFilter }),
       Appointment.countDocuments({
@@ -91,7 +92,8 @@ exports.getDashboardStats = async (req, res, next) => {
       ]),
       LabOrder.countDocuments({ tenant: tenantId, ...branchFilter, overallStatus: { $in: ['Ordered', 'Sample Collected', 'In-Processing'] } }),
       LabOrder.countDocuments({ tenant: tenantId, ...branchFilter, criticalAlert: true }),
-      Medicine.countDocuments({ tenant: tenantId, ...branchFilter, $expr: { $lte: ['$stockQuantity', '$reorderLevel'] } })
+      Medicine.countDocuments({ tenant: tenantId, ...branchFilter, $expr: { $lte: ['$stockQuantity', '$reorderLevel'] } }),
+      User.countDocuments({ tenant: tenantId, role: 'doctor' })
     ]);
 
     const collectionAmount = todayCollections[0]?.total || 0;
@@ -110,7 +112,9 @@ exports.getDashboardStats = async (req, res, next) => {
         todayCollections: collectionAmount,
         pendingLabOrders,
         criticalLabAlerts,
-        lowStockMedicines
+        lowStockMedicines,
+        activeDoctors: activeDoctorsCount || 0,
+        activeSurgeries: 0
       }
     });
   } catch (err) {

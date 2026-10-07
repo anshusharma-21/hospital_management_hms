@@ -37,6 +37,8 @@ exports.getInvoices = async (req, res, next) => {
     const invoices = await Invoice.find(query)
       .populate('patient', 'uhid fullName phone age gender')
       .populate('generatedBy', 'name role')
+      .populate('tenant', 'name legalName address phone email branding settings')
+      .populate('branch', 'name code address phone email')
       .sort({ createdAt: -1 });
 
     const formattedInvoices = invoices.map(inv => {

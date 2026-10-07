@@ -70,35 +70,8 @@ export const BranchManagement = () => {
       }
     } catch (err) {
       console.error(err);
-      // Fallback display
-      setBranches([
-        {
-          _id: 'b-1',
-          name: 'Lifeline Main Tower & Tertiary Center',
-          code: 'MAIN',
-          branchType: 'Main Hospital',
-          phone: '+91 22 2840 5001',
-          email: 'main@lifelinehospital.com',
-          address: { street: '42 Health Boulevard', city: 'Mumbai', state: 'Maharashtra' },
-          bedCapacity: 80,
-          hasEmergency: true,
-          hasICU: true,
-          status: 'active'
-        },
-        {
-          _id: 'b-2',
-          name: 'Lifeline City Clinic & Daycare Surgical',
-          code: 'NORTH',
-          branchType: 'Satellite Clinic',
-          phone: '+91 22 2840 5002',
-          email: 'north@lifelinehospital.com',
-          address: { street: '12 Linking Road, Bandra', city: 'Mumbai', state: 'Maharashtra' },
-          bedCapacity: 20,
-          hasEmergency: false,
-          hasICU: false,
-          status: 'active'
-        }
-      ]);
+      setBranches([]);
+      addToast('Failed to load branches', 'error');
     } finally {
       setLoading(false);
     }
@@ -201,15 +174,15 @@ export const BranchManagement = () => {
             <div className="space-y-2 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 mb-4">
               <div className="flex items-center gap-2 text-slate-600">
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{b.address?.street}, {b.address?.city}, {b.address?.state}</span>
+                <span>{[b.address?.street, b.address?.city, b.address?.state].filter(Boolean).join(', ') || 'Address not configured'}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{b.phone || '+91 22 2840 5000'}</span>
+                <span>{b.phone || 'Phone not configured'}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{b.email || 'branch@hospitalvision.com'}</span>
+                <span>{b.email || 'Email not configured'}</span>
               </div>
             </div>
 
@@ -246,7 +219,7 @@ export const BranchManagement = () => {
               <Input 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="e.g. Lifeline West Extension"
+                placeholder="e.g. City Extension Campus"
                 required
               />
             </div>
@@ -267,7 +240,7 @@ export const BranchManagement = () => {
               <Input 
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+91 22 2840 5005"
+                placeholder="e.g. +91 98765 43210"
                 required
               />
             </div>
@@ -277,7 +250,7 @@ export const BranchManagement = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="west@lifelinehospital.com"
+                placeholder="branch@hospital.com"
                 required
               />
             </div>

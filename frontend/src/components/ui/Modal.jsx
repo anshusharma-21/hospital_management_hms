@@ -30,24 +30,24 @@ export const Modal = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity duration-200"
         onClick={onClose}
       />
 
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className={`relative w-full ${maxWidth} bg-white rounded-2xl border border-slate-200/90 shadow-2xl overflow-hidden transition-all animate-scale-up`}
+          className={`relative w-full ${maxWidth} bg-white rounded-xl border border-slate-200 shadow-modal overflow-hidden transition-all duration-200 my-8`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
             <div>
-              {title && <h3 className="text-base font-bold text-slate-800">{title}</h3>}
+              {title && <h3 className="text-base font-bold text-slate-900 tracking-tight">{title}</h3>}
               {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -58,7 +58,7 @@ export const Modal = ({
 
           {/* Footer */}
           {footer && (
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3">
               {footer}
             </div>
           )}

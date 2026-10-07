@@ -47,40 +47,23 @@ export const ConsultationEncounter = () => {
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
 
-  // Vitals
+  // Vitals (start empty for real entry)
   const [vitals, setVitals] = useState({
-    bloodPressureSystolic: 120,
-    bloodPressureDiastolic: 80,
-    pulse: 76,
-    temperature: 98.6,
-    respiratoryRate: 16,
-    spo2: 98,
-    bloodSugarRandom: 110,
-    painScore: 0
+    bloodPressureSystolic: '',
+    bloodPressureDiastolic: '',
+    pulse: '',
+    temperature: '',
+    respiratoryRate: '',
+    spo2: '',
+    bloodSugarRandom: '',
+    painScore: ''
   });
 
-  // e-Prescription Medicines
-  const [medications, setMedications] = useState([
-    {
-      medicineName: 'Augmentin 625 Duo',
-      dosage: '625 mg',
-      form: 'Tablet',
-      frequency: 'Twice daily (BD)',
-      duration: '5 Days',
-      instructions: 'After Food'
-    },
-    {
-      medicineName: 'Pan-D Capsule',
-      dosage: '40mg + 30mg',
-      form: 'Capsule',
-      frequency: 'Once daily (OD)',
-      duration: '5 Days',
-      instructions: 'Before Food'
-    }
-  ]);
+  // e-Prescription Medicines (clean empty list)
+  const [medications, setMedications] = useState([]);
 
   // Diagnostic Orders Checkbox states
-  const [labTestsSelected, setLabTestsSelected] = useState(['Complete Blood Count (CBC) with ESR']);
+  const [labTestsSelected, setLabTestsSelected] = useState([]);
   const [radiologySelected, setRadiologySelected] = useState([]);
   const [followUpDays, setFollowUpDays] = useState('7');
   const [successModal, setSuccessModal] = useState(false);
@@ -89,15 +72,11 @@ export const ConsultationEncounter = () => {
     const initEncounter = async () => {
       try {
         setLoading(true);
-        // Find patient if patientIdParam provided
-        let targetPatientId = patientIdParam;
+        const targetPatientId = patientIdParam;
 
         if (!targetPatientId) {
-          // Default to first patient
-          const ptsRes = await api.get('/patients');
-          if (ptsRes.data.success && ptsRes.data.data.length > 0) {
-            targetPatientId = ptsRes.data.data[0]._id;
-          }
+          setLoading(false);
+          return;
         }
 
         if (targetPatientId) {
@@ -141,12 +120,12 @@ export const ConsultationEncounter = () => {
     setMedications([
       ...medications,
       {
-        medicineName: 'Paracetamol 650 (Dolo)',
-        dosage: '650 mg',
+        medicineName: '',
+        dosage: '',
         form: 'Tablet',
-        frequency: 'As needed (SOS)',
-        duration: '3 Days',
-        instructions: 'After Food'
+        frequency: '',
+        duration: '',
+        instructions: ''
       }
     ]);
   };
@@ -268,18 +247,37 @@ export const ConsultationEncounter = () => {
     );
   }
 
+  if (!patient) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-4">
+        <Card className="text-center py-16 space-y-3">
+          <Stethoscope className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">No Patient Selected</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Please select an active patient from the OPD Queue to launch a clinical consultation session.
+          </p>
+          <div className="pt-2">
+            <Button size="sm" onClick={() => navigate('/clinical/dashboard')}>
+              Return to Clinical Queue
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Patient Header Bar */}
       {patient && (
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white font-black text-lg flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-teal-800 text-white font-bold text-lg flex items-center justify-center shrink-0 shadow-xs">
               {patient.fullName?.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-slate-900">{patient.fullName}</h2>
+                <h2 className="text-base font-bold text-slate-900">{patient.fullName}</h2>
                 <span className="font-mono text-xs font-bold bg-teal-50 text-teal-800 px-2 py-0.5 rounded border border-teal-200">
                   {patient.uhid}
                 </span>
@@ -327,44 +325,44 @@ export const ConsultationEncounter = () => {
               label="BP Systolic"
               type="number"
               value={vitals.bloodPressureSystolic}
-              onChange={(e) => setVitals({ ...vitals, bloodPressureSystolic: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, bloodPressureSystolic: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="BP Diastolic"
               type="number"
               value={vitals.bloodPressureDiastolic}
-              onChange={(e) => setVitals({ ...vitals, bloodPressureDiastolic: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, bloodPressureDiastolic: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Pulse (bpm)"
               type="number"
               value={vitals.pulse}
-              onChange={(e) => setVitals({ ...vitals, pulse: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, pulse: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Temp (°F)"
               type="number"
               step="0.1"
               value={vitals.temperature}
-              onChange={(e) => setVitals({ ...vitals, temperature: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, temperature: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="SpO2 (%)"
               type="number"
               value={vitals.spo2}
-              onChange={(e) => setVitals({ ...vitals, spo2: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, spo2: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Resp Rate"
               type="number"
               value={vitals.respiratoryRate}
-              onChange={(e) => setVitals({ ...vitals, respiratoryRate: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, respiratoryRate: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Sugar (mg/dL)"
               type="number"
               value={vitals.bloodSugarRandom}
-              onChange={(e) => setVitals({ ...vitals, bloodSugarRandom: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, bloodSugarRandom: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Pain Score (0-10)"
@@ -372,7 +370,7 @@ export const ConsultationEncounter = () => {
               min="0"
               max="10"
               value={vitals.painScore}
-              onChange={(e) => setVitals({ ...vitals, painScore: Number(e.target.value) })}
+              onChange={(e) => setVitals({ ...vitals, painScore: e.target.value === '' ? '' : Number(e.target.value) })}
             />
           </div>
         </Card>
@@ -446,7 +444,12 @@ export const ConsultationEncounter = () => {
           }
         >
           <div className="space-y-3">
-            {medications.map((med, idx) => (
+            {medications.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                No medications added yet. Click &ldquo;Add Drug Row&rdquo; to prescribe medication.
+              </div>
+            ) : (
+              medications.map((med, idx) => (
               <div
                 key={idx}
                 className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-6 gap-3 items-center"
@@ -529,7 +532,7 @@ export const ConsultationEncounter = () => {
                   )}
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </Card>
 
@@ -601,9 +604,9 @@ export const ConsultationEncounter = () => {
         </div>
 
         {/* Follow-up & Finalize */}
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-teal-600" />
+            <Calendar className="w-5 h-5 text-teal-700" />
             <div className="flex items-center gap-2 text-xs">
               <span className="font-bold text-slate-700">Follow-up Advice:</span>
               <select

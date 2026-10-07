@@ -37,11 +37,11 @@ export const InsuranceWorkbench = () => {
     patientId: '',
     patientUhid: '',
     patientName: '',
-    tpaName: 'Star Health & Allied Insurance',
-    policyNumber: 'SH-POL-992019',
-    sumInsured: 500000,
-    requestedPreAuthAmount: 60000,
-    plannedProcedure: 'Laparoscopic Surgery / Elective IPD'
+    tpaName: '',
+    policyNumber: '',
+    sumInsured: '',
+    requestedPreAuthAmount: '',
+    plannedProcedure: ''
   });
 
   const fetchInsuranceData = async () => {
@@ -54,15 +54,6 @@ export const InsuranceWorkbench = () => {
 
       if (ptsRes.data.success && ptsRes.data.data) {
         setPatients(ptsRes.data.data);
-        if (ptsRes.data.data.length > 0 && !formData.patientId) {
-          const first = ptsRes.data.data[0];
-          setFormData(prev => ({
-            ...prev,
-            patientId: first._id,
-            patientUhid: first.uhid,
-            patientName: first.fullName || `${first.firstName} ${first.lastName || ''}`.trim()
-          }));
-        }
       }
 
       if (insRes.data.success && insRes.data.data) {

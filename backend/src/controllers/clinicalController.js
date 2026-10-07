@@ -439,6 +439,8 @@ exports.getPrescriptions = async (req, res, next) => {
     const prescriptions = await Prescription.find(query)
       .populate('patient', 'uhid fullName age gender phone')
       .populate('doctor', 'name doctorProfile')
+      .populate('tenant', 'name legalName address phone email branding settings')
+      .populate('branch', 'name code address phone email')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

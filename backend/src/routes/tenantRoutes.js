@@ -46,7 +46,7 @@ router.post('/:id/purge', authorize('super_admin'), purgeTenantData);
 router.route('/:id')
   .get(getTenantById)
   .put(updateTenant)
-  .delete(authorize('super_admin'), deleteTenant);
+  .delete(authorize('super_admin', 'saas_admin'), deleteTenant);
 
 router.route('/:id/branches')
   .get(getBranches)

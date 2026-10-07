@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_LABELS, ROLE_BADGE_COLORS } from '../../constants/roles';
+import { HospitalVisionLogo } from '../common/HospitalVisionLogo';
 import {
   Activity,
   Search,
@@ -49,23 +50,13 @@ export const Navbar = ({ onOpenSearch }) => {
     <header className="h-16 bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-6 flex items-center justify-between shadow-xs">
       {/* Brand & Organization Context */}
       <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-600/20 group-hover:scale-105 transition-transform">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold tracking-tight text-slate-900">
-                Hospital<span className="text-teal-600">Vision</span>
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-teal-50 text-teal-700 border border-teal-200/60 uppercase">
-                SaaS
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium hidden sm:block">
-              {tenant?.name || 'Lifeline Multi-Specialty Hospital'}
-            </p>
-          </div>
+        <Link to="/" className="group flex items-center">
+          <HospitalVisionLogo
+            size="md"
+            variant="light"
+            badge="SaaS"
+            subtitle={tenant?.name || user?.tenant?.name || ''}
+          />
         </Link>
 
         {/* Active Branch Context & Selector */}
@@ -79,16 +70,16 @@ export const Navbar = ({ onOpenSearch }) => {
                     setBranchDropdownOpen(!branchDropdownOpen);
                   }
                 }}
-                className={`hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
+                className={`hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-all ${
                   branchDropdownOpen
-                    ? 'bg-white border-teal-500 shadow-sm ring-2 ring-teal-500/10'
-                    : 'bg-slate-50/90 hover:bg-slate-100/80 border-slate-200/80 text-slate-700'
+                    ? 'bg-white border-teal-700 shadow-xs ring-2 ring-teal-700/10'
+                    : 'bg-slate-50/90 hover:bg-slate-100 border-slate-200/90 text-slate-700'
                 }`}
                 title="Switch Active Branch"
                 aria-expanded={branchDropdownOpen}
                 aria-haspopup="true"
               >
-                <Building className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <Building className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                 <div className="flex flex-col text-left max-w-[130px] xl:max-w-[200px]">
                   <span className="font-semibold text-slate-800 leading-tight truncate">
                     {(activeBranch || branch)?.name || 'Main Campus'}
@@ -107,10 +98,10 @@ export const Navbar = ({ onOpenSearch }) => {
               </button>
             ) : (
               <div
-                className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 text-xs text-slate-700 cursor-default"
+                className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200/90 bg-slate-50 text-xs text-slate-700 cursor-default"
                 title="Assigned Branch Context"
               >
-                <Building className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <Building className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                 <div className="flex flex-col text-left max-w-[130px] xl:max-w-[200px]">
                   <span className="font-semibold text-slate-800 leading-tight truncate">
                     {(activeBranch || branch)?.name || 'Assigned Branch'}
@@ -122,7 +113,7 @@ export const Navbar = ({ onOpenSearch }) => {
                     </span>
                   )}
                 </div>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200/50">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200/70">
                   Assigned
                 </span>
               </div>
@@ -130,7 +121,7 @@ export const Navbar = ({ onOpenSearch }) => {
 
             {/* Dropdown Menu (Main Branch Users and Organization Administrators) */}
             {isMainBranchUser && branchDropdownOpen && availableBranches && availableBranches.length > 0 && (
-              <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 animate-in fade-in-50 zoom-in-95">
+              <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-modal z-50 p-1.5 animate-in fade-in-50 zoom-in-95">
                 <div className="px-3 py-2 border-b border-slate-100">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Switch Branch</p>
                   <p className="text-xs text-slate-500">Main branch can oversee all operational branches</p>
@@ -146,15 +137,15 @@ export const Navbar = ({ onOpenSearch }) => {
                           switchBranch(b);
                           setBranchDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
                           isSelected
-                            ? 'bg-teal-50 text-teal-900 font-medium border border-teal-200/60'
+                            ? 'bg-teal-50 text-teal-900 font-medium border border-teal-200/70'
                             : 'hover:bg-slate-50 text-slate-700'
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                          <div className={`mt-0.5 w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-500'
                           }`}>
                             <Building className="w-3.5 h-3.5" />
                           </div>
@@ -165,7 +156,7 @@ export const Navbar = ({ onOpenSearch }) => {
                               <span>·</span>
                               <span>{b.bedCapacity || 0} beds</span>
                               {b.isMain || b.branchType === 'Main Hospital' || b.code === 'MAIN' ? (
-                                <span className="text-[9px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-1.5 py-0.5 rounded">
+                                <span className="text-[9px] font-bold text-teal-800 bg-teal-50 border border-teal-200/70 px-1.5 py-0.5 rounded">
                                   Main Branch
                                 </span>
                               ) : (
@@ -177,7 +168,7 @@ export const Navbar = ({ onOpenSearch }) => {
                           </div>
                         </div>
                         {isSelected && (
-                          <Check className="w-4 h-4 text-teal-600 shrink-0 ml-2" />
+                          <Check className="w-4 h-4 text-teal-700 shrink-0 ml-2" />
                         )}
                       </button>
                     );
@@ -195,14 +186,14 @@ export const Navbar = ({ onOpenSearch }) => {
         <button
           type="button"
           onClick={onOpenSearch}
-          className="group flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-teal-500/50 hover:shadow-sm text-slate-400 hover:text-slate-700 transition-all text-xs cursor-pointer"
+          className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-slate-300 hover:shadow-xs text-slate-400 hover:text-slate-700 transition-all text-xs cursor-pointer"
           title="Search patient by UHID, Name, or Mobile (Shortcut: /)"
         >
-          <Search className="w-4 h-4 text-slate-400 group-hover:text-teal-600 transition-colors shrink-0" />
+          <Search className="w-4 h-4 text-slate-400 group-hover:text-teal-700 transition-colors shrink-0" />
           <span className="hidden sm:inline font-medium text-slate-500 group-hover:text-slate-800 transition-colors truncate max-w-[140px] md:max-w-[200px]">
             Search patient...
           </span>
-          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white group-hover:bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-400 group-hover:text-teal-700 shadow-2xs transition-colors shrink-0">
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white group-hover:bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-400 group-hover:text-teal-800 shadow-2xs transition-colors shrink-0">
             /
           </kbd>
         </button>
@@ -212,11 +203,11 @@ export const Navbar = ({ onOpenSearch }) => {
           <button
             type="button"
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="relative flex items-center justify-center p-0.5 rounded-full hover:ring-3 hover:ring-teal-500/20 hover:shadow-sm transition-all duration-200 cursor-pointer group"
+            className="relative flex items-center justify-center p-0.5 rounded-full hover:ring-2 hover:ring-teal-700/20 hover:shadow-xs transition-all duration-150 cursor-pointer group"
             title={`${user?.name || 'Staff User'} (${ROLE_LABELS[role] || role})`}
             aria-expanded={profileMenuOpen}
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-teal-700 to-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+            <div className="w-8.5 h-8.5 rounded-full bg-teal-800 text-white font-bold text-xs flex items-center justify-center shadow-xs border border-teal-900/20">
               {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             {/* Online Pulse Status Dot */}
@@ -225,7 +216,7 @@ export const Navbar = ({ onOpenSearch }) => {
 
           {/* Clean User Profile Dropdown */}
           {profileMenuOpen && (
-            <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-2xl border border-slate-200/90 shadow-2xl py-2 z-50 animate-in fade-in-50 zoom-in-95 origin-top-right">
+            <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-xl border border-slate-200 shadow-modal py-2 z-50 animate-in fade-in-50 zoom-in-95 origin-top-right">
               <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-800 font-extrabold text-sm flex items-center justify-center border border-teal-200 shrink-0">
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}

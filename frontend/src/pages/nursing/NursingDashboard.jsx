@@ -140,21 +140,21 @@ export const NursingDashboard = () => {
         />
         <StatsCard
           title="Medication Tasks Due"
-          value="12"
-          subtitle="Scheduled for this nursing shift"
+          value={admissions.length}
+          subtitle="Active care tasks scheduled"
           icon={Activity}
           color="teal"
         />
         <StatsCard
           title="Vitals Alerts"
-          value="2"
+          value={0}
           subtitle="Borderline SpO2 or temperature"
           icon={AlertTriangle}
           color="rose"
         />
         <StatsCard
           title="Pending Clearances"
-          value="3"
+          value={0}
           subtitle="Patients preparing for discharge"
           icon={CheckCircle2}
           color="amber"

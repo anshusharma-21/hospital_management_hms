@@ -22,6 +22,7 @@ export const DoctorDashboard = () => {
   const [queue, setQueue] = useState([]);
   const [admissions, setAdmissions] = useState([]);
   const [criticalLabs, setCriticalLabs] = useState([]);
+  const [prescriptionsCount, setPrescriptionsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -29,10 +30,11 @@ export const DoctorDashboard = () => {
     const fetchDoctorData = async () => {
       try {
         setLoading(true);
-        const [queueRes, admRes, labRes] = await Promise.all([
+        const [queueRes, admRes, labRes, rxRes] = await Promise.all([
           api.get('/appointments/queue'),
           api.get('/ipd/admissions?status=Admitted'),
-          api.get('/diagnostics/lab-orders?criticalOnly=true')
+          api.get('/diagnostics/lab-orders?criticalOnly=true'),
+          api.get('/clinical/prescriptions')
         ]);
 
         if (queueRes.data.success) {
@@ -45,6 +47,9 @@ export const DoctorDashboard = () => {
         }
         if (labRes.data.success) {
           setCriticalLabs(labRes.data.data || []);
+        }
+        if (rxRes.data?.success) {
+          setPrescriptionsCount(rxRes.data.count || rxRes.data.data?.length || 0);
         }
       } catch (err) {
         console.error('Doctor dashboard load failed:', err);
@@ -60,7 +65,7 @@ export const DoctorDashboard = () => {
     {
       header: 'Token #',
       render: (row) => (
-        <span className="font-mono font-bold text-sm bg-teal-50 text-teal-800 px-2.5 py-1 rounded-lg border border-teal-200">
+        <span className="font-mono font-bold text-xs bg-teal-50 text-teal-800 px-2.5 py-1 rounded-md border border-teal-200/70">
           #{row.tokenNumber}
         </span>
       )
@@ -69,8 +74,8 @@ export const DoctorDashboard = () => {
       header: 'Patient Details',
       render: (row) => (
         <div>
-          <span className="font-bold text-xs text-slate-800">{row.patient?.fullName}</span>
-          <p className="text-[10px] text-slate-400">
+          <span className="font-bold text-xs text-slate-900">{row.patient?.fullName}</span>
+          <p className="text-[10px] text-slate-500 mt-0.5">
             {row.patient?.uhid} • {row.patient?.gender}, {row.patient?.age}y
           </p>
         </div>
@@ -134,11 +139,11 @@ export const DoctorDashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Clinical Doctor Workspace</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Clinical Doctor Workspace</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Today's patient appointments, active encounters, and diagnostic reports
           </p>
@@ -178,8 +183,8 @@ export const DoctorDashboard = () => {
         />
         <StatsCard
           title="e-Prescriptions Issued"
-          value="18"
-          subtitle="Today across OPD and IPD rounds"
+          value={prescriptionsCount}
+          subtitle="Real-time recorded prescriptions"
           icon={FileText}
           color="emerald"
         />
@@ -187,14 +192,14 @@ export const DoctorDashboard = () => {
 
       {/* Critical Results Banner if any */}
       {criticalLabs.length > 0 && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start justify-between gap-4">
+        <div className="p-4 rounded-xl bg-rose-50/80 border border-rose-200 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-xs font-bold text-rose-900">
+              <h4 className="text-xs font-bold text-rose-950">
                 Critical Diagnostic Value Alert ({criticalLabs.length} pending review)
               </h4>
-              <p className="text-xs text-rose-700 mt-0.5">
+              <p className="text-xs text-rose-800 mt-0.5">
                 Urgent abnormal test results reported by laboratory requiring immediate clinician attention.
               </p>
             </div>

@@ -19,8 +19,8 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ email: email.toLowerCase() })
       .select('+password')
-      .populate('tenant', 'name slug subscription status branding settings')
-      .populate('branch', 'name code bedCapacity')
+      .populate('tenant', 'name legalName slug subscription status branding settings email phone address hospitalType website')
+      .populate('branch', 'name code bedCapacity address phone email branchType isMain')
       .populate('department', 'name code');
 
     if (!user) {
@@ -97,9 +97,17 @@ exports.patientLogin = async (req, res, next) => {
       });
     }
 
+    // In production, OTP is strictly required
+    if (process.env.NODE_ENV === 'production' && (!otp || !otp.toString().trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'OTP verification code is required'
+      });
+    }
+
     // Locate patient record by phone
     const patient = await Patient.findOne({ phone: phone.trim() })
-      .populate('tenant', 'name branding settings');
+      .populate('tenant', 'name legalName branding settings email phone address hospitalType website');
 
     if (!patient) {
       return res.status(404).json({

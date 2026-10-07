@@ -25,12 +25,12 @@ export const HospitalDashboard = () => {
   const { addToast } = useToast();
   const { tenant, activeBranch, branch } = useAuth();
   const [metrics, setMetrics] = useState({
-    opdToday: 42,
-    bedsOccupied: 46,
-    totalBeds: 100,
-    activeSurgeries: 3,
-    collectionsToday: 184500,
-    activeDoctors: 12
+    opdToday: 0,
+    bedsOccupied: 0,
+    totalBeds: 0,
+    activeSurgeries: 0,
+    collectionsToday: 0,
+    activeDoctors: 0
   });
 
   useEffect(() => {
@@ -39,13 +39,14 @@ export const HospitalDashboard = () => {
         const res = await api.get('/dashboard/stats');
         if (res.data.success && res.data.stats) {
           const s = res.data.stats;
-          setMetrics(prev => ({
-            ...prev,
-            opdToday: s.todayAppointments ?? prev.opdToday,
-            bedsOccupied: (s.totalBeds - s.availableBeds) >= 0 ? (s.totalBeds - s.availableBeds) : prev.bedsOccupied,
-            totalBeds: s.totalBeds ?? prev.totalBeds,
-            collectionsToday: s.todayCollections ?? prev.collectionsToday
-          }));
+          setMetrics({
+            opdToday: s.todayAppointments ?? 0,
+            bedsOccupied: (s.totalBeds - s.availableBeds) >= 0 ? (s.totalBeds - s.availableBeds) : 0,
+            totalBeds: s.totalBeds ?? 0,
+            activeSurgeries: s.activeSurgeries ?? 0,
+            collectionsToday: s.todayCollections ?? 0,
+            activeDoctors: s.activeDoctors ?? 0
+          });
         }
       } catch (err) {
         console.error('Failed to load dashboard metrics:', err);
@@ -96,7 +97,7 @@ export const HospitalDashboard = () => {
         <StatsCard 
           title="Inpatient Bed Occupancy" 
           value={`${metrics.bedsOccupied} / ${metrics.totalBeds}`} 
-          subtitle="46% General & ICU Occupancy"
+          subtitle={metrics.totalBeds > 0 ? `${Math.round((metrics.bedsOccupied / metrics.totalBeds) * 100)}% General & ICU Occupancy` : '0% Occupancy'}
           icon={<BedDouble className="w-4 h-4 text-indigo-600" />} 
         />
         <StatsCard 
@@ -107,7 +108,7 @@ export const HospitalDashboard = () => {
         <StatsCard 
           title="Clinicians on Duty" 
           value={`${metrics.activeDoctors} Doctors`} 
-          subtitle="8 OPDs • 4 IPD Rounds"
+          subtitle="Active medical staff"
           icon={<Stethoscope className="w-4 h-4 text-blue-600" />} 
         />
       </div>

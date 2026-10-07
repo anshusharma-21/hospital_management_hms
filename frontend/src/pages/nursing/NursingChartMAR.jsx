@@ -32,19 +32,15 @@ export const NursingChartMAR = () => {
 
   // New MAR Form
   const [shift, setShift] = useState('Morning Shift (07:00 - 15:00)');
-  const [medications, setMedications] = useState([
-    { medicationName: 'IV Ceftriaxone 1g', dosage: '1g in 100ml NS', scheduledTime: '08:00 AM', status: 'Administered' },
-    { medicationName: 'Tab Pantoprazole 40mg', dosage: '40mg Oral', scheduledTime: '07:30 AM', status: 'Administered' },
-    { medicationName: 'IV Paracetamol 100ml', dosage: '1g Infusion', scheduledTime: '12:00 PM', status: 'Administered' }
-  ]);
+  const [medications, setMedications] = useState([]);
   const [intakeOutput, setIntakeOutput] = useState({
-    oralFluidsMl: 650,
-    ivFluidsMl: 1000,
-    urineOutputMl: 1200,
+    oralFluidsMl: 0,
+    ivFluidsMl: 0,
+    urineOutputMl: 0,
     drainOutputMl: 0
   });
-  const [nursingNotes, setNursingNotes] = useState('Patient comfortable, surgical wound dressing clean and intact, afebrile throughout morning shift.');
-  const [handoverNotes, setHandoverNotes] = useState('Maintain telemetry, check blood glucose at 02:00 PM.');
+  const [nursingNotes, setNursingNotes] = useState('');
+  const [handoverNotes, setHandoverNotes] = useState('');
 
   useEffect(() => {
     const fetchAdmissionData = async () => {
@@ -53,14 +49,16 @@ export const NursingChartMAR = () => {
         const res = await api.get('/ipd/admissions?status=Admitted');
         if (res.data.success && res.data.data.length > 0) {
           const adm = admissionId
-            ? res.data.data.find((a) => a._id === admissionId) || res.data.data[0]
-            : res.data.data[0];
-          setAdmission(adm);
+            ? res.data.data.find((a) => a._id === admissionId)
+            : null;
+          if (adm) {
+            setAdmission(adm);
 
-          // Fetch nursing history
-          const recRes = await api.get(`/ipd/nursing-records/${adm._id}`);
-          if (recRes.data.success) {
-            setRecords(recRes.data.data);
+            // Fetch nursing history
+            const recRes = await api.get(`/ipd/nursing-records/${adm._id}`);
+            if (recRes.data.success) {
+              setRecords(recRes.data.data);
+            }
           }
         }
       } catch (err) {
@@ -114,6 +112,25 @@ export const NursingChartMAR = () => {
     return <div className="p-8 text-center text-xs text-slate-400">Loading nursing chart & MAR...</div>;
   }
 
+  if (!admission) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-4">
+        <Card className="text-center py-16 space-y-3">
+          <Activity className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">No Inpatient Admission Selected</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Please select an admitted patient from the Bed Board to document medication administration and fluid balance.
+          </p>
+          <div className="pt-2">
+            <Button size="sm" onClick={() => navigate('/ipd/bed-board')}>
+              Open Bed Board
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Patient Header */}
@@ -157,6 +174,22 @@ export const NursingChartMAR = () => {
           title="Medication Administration Record (MAR)"
           subtitle="Document drug administration, held doses, or patient refusals for current shift"
           headerIcon={Pill}
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              icon={Plus}
+              type="button"
+              onClick={() =>
+                setMedications([
+                  ...medications,
+                  { medicationName: '', dosage: '', scheduledTime: '', status: 'Administered' }
+                ])
+              }
+            >
+              Add Medication Task
+            </Button>
+          }
         >
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -173,7 +206,12 @@ export const NursingChartMAR = () => {
             </div>
 
             <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden">
-              {medications.map((med, idx) => (
+              {medications.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 bg-white">
+                  No active medication tasks charted for this shift. Click &ldquo;Add Medication Task&rdquo; to record doses.
+                </div>
+              ) : (
+                medications.map((med, idx) => (
                 <div
                   key={idx}
                   className="p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
@@ -204,7 +242,7 @@ export const NursingChartMAR = () => {
                     ))}
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </Card>

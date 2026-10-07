@@ -84,10 +84,10 @@ export const PatientProfile = () => {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Patient Header Card */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4">
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex items-center justify-center font-black text-xl shadow-md shadow-teal-600/30 shrink-0">
+            <div className="w-16 h-16 rounded-xl bg-teal-800 text-white flex items-center justify-center font-bold text-2xl shadow-xs shrink-0">
               {patient.fullName.charAt(0)}
             </div>
             <div className="space-y-1">

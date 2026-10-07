@@ -28,7 +28,7 @@ export const EmergencyTriage = () => {
     patient: '',
     triageLevel: 'Level 1: Red (Immediate Resuscitation)',
     modeOfArrival: 'Ambulance (108 / EMS)',
-    chiefComplaint: 'Acute chest pain radiating to left arm with diaphoresis',
+    chiefComplaint: '',
     glasgowComaScale: 15
   });
 
@@ -57,9 +57,18 @@ export const EmergencyTriage = () => {
 
   const handleRapidRegister = async (e) => {
     e.preventDefault();
+    if (!formData.patient) {
+      addToast({
+        title: 'Validation Error',
+        message: 'Please select a registered patient for emergency triage.',
+        type: 'warning'
+      });
+      return;
+    }
+
     try {
       const res = await api.post('/ipd/emergency', {
-        patient: formData.patient || patients[0]?._id,
+        patient: formData.patient,
         triageLevel: formData.triageLevel,
         modeOfArrival: formData.modeOfArrival,
         chiefComplaint: formData.chiefComplaint,
@@ -185,7 +194,11 @@ export const EmergencyTriage = () => {
               label="Select Patient"
               value={formData.patient}
               onChange={(e) => setFormData({ ...formData, patient: e.target.value })}
-              options={patients.map((p) => ({ value: p._id, label: `${p.fullName} (${p.uhid})` }))}
+              options={[
+                { value: '', label: 'Select Patient from Master...' },
+                ...patients.map((p) => ({ value: p._id, label: `${p.fullName} (${p.uhid})` }))
+              ]}
+              required
             />
 
             <Select

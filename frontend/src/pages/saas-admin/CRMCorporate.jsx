@@ -36,7 +36,7 @@ export const CRMCorporate = () => {
     hospitalName: '',
     bedCount: 50,
     status: 'new',
-    notes: 'Interested in OPD & Billing modules'
+    notes: ''
   });
 
   useEffect(() => {
@@ -59,15 +59,9 @@ export const CRMCorporate = () => {
       }
     } catch (err) {
       console.error(err);
-      // Realistic fallback demo
-      setLeads([
-        { _id: 'l1', name: 'Dr. R. K. Singhania', hospitalName: 'Singhania Medicare Center', phone: '+91 98111 22334', email: 'director@singhaniamed.com', bedCount: 45, status: 'demo_scheduled', notes: 'Scheduled live demonstration on Sep 30' },
-        { _id: 'l2', name: 'Mrs. Rekha Joshi', hospitalName: 'Joshi Mother & Child Hospital', phone: '+91 98222 33445', email: 'rekha@joshimch.org', bedCount: 25, status: 'proposal_sent', notes: 'Proposal for Starter Plan (30 beds) shared' }
-      ]);
-      setCorporateAccounts([
-        { _id: 'c1', companyName: 'Tata Consultancy Services (TCS Corporate Health)', contactPerson: 'Arvind Swamy', phone: '+91 22 6778 0000', email: 'health.desk@tcs.com', creditLimit: 2500000, discountPercentage: 15, status: 'active' },
-        { _id: 'c2', companyName: 'Reliance Industries Ltd (RIL Employee Wellness)', contactPerson: 'Pooja Mehta', phone: '+91 22 4477 1100', email: 'corporate.medical@ril.com', creditLimit: 5000000, discountPercentage: 20, status: 'active' }
-      ]);
+      setLeads([]);
+      setCorporateAccounts([]);
+      addToast('Failed to load CRM records', 'error');
     } finally {
       setLoading(false);
     }
@@ -84,9 +78,7 @@ export const CRMCorporate = () => {
       }
     } catch (err) {
       console.error(err);
-      addToast('Created lead locally', 'info');
-      setLeads([leadForm, ...leads]);
-      setShowLeadModal(false);
+      addToast(err.response?.data?.error || 'Failed to create lead', 'error');
     }
   };
 

@@ -228,29 +228,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('hv_support_tenant_id');
   };
 
-  // Helper for instant role switching during demo/testing
+  // Helper for role switching (deprecated - persona switcher removed)
   const switchRole = async (targetRole) => {
-    const roleCredentials = {
-      super_admin: 'superadmin@hospitalvision.com',
-      saas_admin: 'superadmin@hospitalvision.com',
-      hospital_admin: 'admin@lifelinehospital.com',
-      doctor: 'dr.arun@lifelinehospital.com',
-      receptionist: 'reception@lifelinehospital.com',
-      nurse: 'nurse.anita@lifelinehospital.com',
-      billing_cashier: 'cashier@lifelinehospital.com',
-      pharmacist: 'pharmacist@lifelinehospital.com',
-      lab_tech: 'lab@lifelinehospital.com',
-      radiologist: 'radiology@lifelinehospital.com'
-    };
-
-    if (targetRole === 'patient') {
-      return await patientLogin('9876543210');
-    }
-
-    const email = roleCredentials[targetRole];
-    if (email) {
-      return await login(email, 'Password123!');
-    }
+    console.warn('Direct persona switching with mock credentials has been removed. Please authenticate with actual user credentials.');
   };
 
   return (

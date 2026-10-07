@@ -50,14 +50,8 @@ export const DepartmentManagement = () => {
       }
     } catch (err) {
       console.error(err);
-      setDepartments([
-        { _id: 'd1', name: 'General Medicine', code: 'GEN_MED', departmentType: 'Clinical', headOfDepartment: 'Dr. Arun Sharma', status: 'active' },
-        { _id: 'd2', name: 'General Surgery', code: 'GEN_SURG', departmentType: 'Clinical', headOfDepartment: 'Dr. Meera Iyer', status: 'active' },
-        { _id: 'd3', name: 'Pathology & Diagnostic Lab', code: 'PATH_LAB', departmentType: 'Diagnostic', headOfDepartment: 'Dr. Sujata Rao', status: 'active' },
-        { _id: 'd4', name: 'Radiology & Imaging', code: 'RADIO', departmentType: 'Diagnostic', headOfDepartment: 'Dr. Vikram Malhotra', status: 'active' },
-        { _id: 'd5', name: 'Inpatient Nursing Service', code: 'NURSE', departmentType: 'Nursing', headOfDepartment: 'Sister In-charge Anita', status: 'active' },
-        { _id: 'd6', name: 'Billing & Patient Accounts', code: 'BILLING', departmentType: 'Administrative', headOfDepartment: 'Ramesh Patel', status: 'active' }
-      ]);
+      setDepartments([]);
+      addToast('Failed to load departments', 'error');
     } finally {
       setLoading(false);
     }

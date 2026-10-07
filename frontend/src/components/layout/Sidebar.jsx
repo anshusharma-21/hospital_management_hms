@@ -33,9 +33,9 @@ export const Sidebar = () => {
   const { role, isPatient } = useAuth();
 
   const navClass = ({ isActive }) =>
-    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+    `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
       isActive
-        ? 'bg-teal-600 text-white shadow-sm shadow-teal-600/30'
+        ? 'bg-teal-600 text-white font-bold shadow-sm shadow-teal-600/20'
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
     }`;
 
@@ -356,30 +356,30 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between p-4 h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-y-auto">
+    <aside className="w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between p-3.5 h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-y-auto">
       <div className="space-y-6">
         {renderNavItems()}
 
         {/* Cross-Link to Patient Self-Service Portal */}
-        <div className="pt-4 border-t border-slate-100">
-          <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Portals</p>
+        <div className="pt-3 border-t border-slate-100">
+          <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Direct Access</p>
           <NavLink to="/patient-portal/dashboard" className={navClass}>
-            <Users className="w-4 h-4 text-teal-600" />
-            <span>Patient Self-Service PWA</span>
+            <Users className="w-4 h-4 text-teal-700" />
+            <span>Patient Portal PWA</span>
           </NavLink>
         </div>
       </div>
 
       {/* Footer Info Box */}
-      <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
-        <div className="flex items-center justify-between font-bold text-slate-700">
-          <span>HV SaaS Core</span>
-          <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Online
+      <div className="pt-3 border-t border-slate-100 px-2 text-[11px] text-slate-500 space-y-1">
+        <div className="flex items-center justify-between font-semibold text-slate-700">
+          <span>Healthcare Platform</span>
+          <span className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            Operational
           </span>
         </div>
-        <p className="truncate text-slate-400">One Patient → One Record</p>
+        <p className="truncate text-slate-400 text-[10px]">Hospital Vision Multi-Tenant</p>
       </div>
     </aside>
   );

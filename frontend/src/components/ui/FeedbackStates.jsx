@@ -3,28 +3,28 @@ import { AlertCircle, FolderOpen, RefreshCcw } from 'lucide-react';
 import { Button } from './Button';
 
 export const Skeleton = ({ className = '' }) => {
-  return <div className={`animate-pulse bg-slate-200/70 rounded-xl ${className}`} />;
+  return <div className={`animate-pulse bg-slate-200/70 rounded-lg ${className}`} />;
 };
 
 export const EmptyState = ({
   icon: Icon = FolderOpen,
   title = 'No records found',
-  description = 'There are no active entries to display right now.',
+  description = 'There are no active entries to display in this view.',
   actionLabel,
   onAction,
   actionIcon
 }) => {
   return (
-    <div className="py-14 px-4 flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-3">
-      <div className="p-3.5 rounded-2xl bg-slate-100 text-slate-400 border border-slate-200/80">
-        <Icon className="w-6 h-6" />
+    <div className="py-12 px-4 flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-3">
+      <div className="p-3 rounded-xl bg-slate-100 text-slate-400 border border-slate-200">
+        <Icon className="w-5 h-5" />
       </div>
       <div>
         <h4 className="text-sm font-bold text-slate-800">{title}</h4>
         <p className="text-xs text-slate-500 mt-1 leading-relaxed">{description}</p>
       </div>
       {actionLabel && onAction && (
-        <div className="pt-2">
+        <div className="pt-1.5">
           <Button onClick={onAction} icon={actionIcon} size="sm">
             {actionLabel}
           </Button>
@@ -35,18 +35,18 @@ export const EmptyState = ({
 };
 
 export const ErrorState = ({
-  title = 'Failed to load records',
+  title = 'Unable to load records',
   error = 'A network or server error occurred while retrieving clinical records.',
   onRetry
 }) => {
   return (
-    <div className="p-6 rounded-2xl bg-rose-50/60 border border-rose-200/80 text-center max-w-md mx-auto space-y-3">
-      <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-        <AlertCircle className="w-5 h-5" />
+    <div className="p-6 rounded-xl bg-rose-50/60 border border-rose-200 text-center max-w-md mx-auto space-y-3">
+      <div className="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+        <AlertCircle className="w-4 h-4" />
       </div>
       <div>
-        <h4 className="text-sm font-bold text-rose-900">{title}</h4>
-        <p className="text-xs text-rose-600 mt-1">{error}</p>
+        <h4 className="text-sm font-bold text-rose-950">{title}</h4>
+        <p className="text-xs text-rose-700 mt-1 leading-relaxed">{error}</p>
       </div>
       {onRetry && (
         <Button onClick={onRetry} variant="secondary" size="sm" icon={RefreshCcw}>

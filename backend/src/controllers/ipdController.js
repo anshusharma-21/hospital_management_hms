@@ -643,9 +643,7 @@ exports.createOTRecord = async (req, res, next) => {
     }
 
     if (!targetPatientId) {
-      const firstPatient = await Patient.findOne({ tenant: req.tenantId });
-      if (firstPatient) targetPatientId = firstPatient._id;
-      else return res.status(400).json({ success: false, error: 'Valid patient record or UHID required' });
+      return res.status(400).json({ success: false, error: 'Valid patient record or UHID required' });
     }
 
     // Resolve surgeon and anaesthetist

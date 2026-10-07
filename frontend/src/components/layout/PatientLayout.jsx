@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { HospitalVisionLogo } from '../common/HospitalVisionLogo';
 
 const NAV_ITEMS = [
   { path: '/patient-portal/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -78,15 +79,7 @@ export const PatientLayout = ({ children }) => {
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center font-black text-white text-base shadow-sm">
-              HV
-            </div>
-            <div>
-              <span className="font-bold text-sm tracking-tight block leading-none">Hospital Vision</span>
-              <span className="text-[10px] text-teal-300 font-medium tracking-wide">Patient Portal</span>
-            </div>
-          </div>
+          <HospitalVisionLogo size="sm" variant="dark" badge="Portal" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -110,22 +103,8 @@ export const PatientLayout = ({ children }) => {
         }`}
       >
         {/* Brand Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-teal-500/20">
-              HV
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white tracking-tight text-base">Hospital Vision</span>
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-teal-300 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Patient Health Portal</span>
-              </div>
-            </div>
-          </div>
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <HospitalVisionLogo size="md" variant="dark" badge="Portal" subtitle="Patient Health Platform" />
           <button
             onClick={() => setMobileMenuOpen(false)}
             className="lg:hidden text-slate-400 hover:text-white p-1"

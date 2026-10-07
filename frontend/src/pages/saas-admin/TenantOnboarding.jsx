@@ -17,6 +17,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { ONBOARDING_PLAN_OPTIONS } from '../../constants/subscriptionPlans';
 
 export const TenantOnboarding = () => {
   const { addToast } = useToast();
@@ -139,21 +140,21 @@ export const TenantOnboarding = () => {
         <div className="flex justify-center items-center gap-6 mt-6">
           <div className="flex items-center gap-2">
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              step >= 1 ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-600'
+              step >= 1 ? 'bg-teal-800 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
             }`}>1</span>
             <span className="text-xs font-bold text-slate-700">Hospital Organization</span>
           </div>
           <div className="w-8 h-0.5 bg-slate-200"></div>
           <div className="flex items-center gap-2">
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              step >= 2 ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-600'
+              step >= 2 ? 'bg-teal-800 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
             }`}>2</span>
             <span className="text-xs font-bold text-slate-700">Primary Branch</span>
           </div>
           <div className="w-8 h-0.5 bg-slate-200"></div>
           <div className="flex items-center gap-2">
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              step >= 3 ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-600'
+              step >= 3 ? 'bg-teal-800 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
             }`}>3</span>
             <span className="text-xs font-bold text-slate-700">Hospital Admin Setup</span>
           </div>
@@ -238,12 +239,16 @@ export const TenantOnboarding = () => {
                 <label className="font-bold text-slate-700 block mb-1">Subscription Plan</label>
                 <Select 
                   value={formData.plan}
-                  onChange={(e) => setFormData({...formData, plan: e.target.value})}
-                  options={[
-                    { value: 'Starter (Up to 30 Beds)', label: 'Starter (Up to 30 Beds) — ₹19,000/mo' },
-                    { value: 'Professional (Up to 100 Beds)', label: 'Professional (Up to 100 Beds) — ₹49,000/mo' },
-                    { value: 'Enterprise (Up to 500 Beds)', label: 'Enterprise (Up to 500 Beds) — ₹99,000/mo' },
-                  ]}
+                  onChange={(e) => {
+                    const selectedPlanValue = e.target.value;
+                    const matchedPlan = ONBOARDING_PLAN_OPTIONS.find(p => p.value === selectedPlanValue);
+                    setFormData(prev => ({
+                      ...prev,
+                      plan: selectedPlanValue,
+                      maxBeds: matchedPlan ? matchedPlan.defaultBeds : prev.maxBeds
+                    }));
+                  }}
+                  options={ONBOARDING_PLAN_OPTIONS}
                 />
               </div>
               <div>

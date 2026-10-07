@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { PLAN_TIERS_LIST } from '../../constants/subscriptionPlans';
 
 export const SubscriptionManagement = () => {
   const { addToast } = useToast();
@@ -37,74 +38,7 @@ export const SubscriptionManagement = () => {
     billingCycle: 'annual'
   });
 
-  const planTiers = [
-    {
-      id: 'starter',
-      planName: 'Starter (Up to 25 Beds)',
-      displayName: 'Starter Clinic / Nursing Home',
-      price: '₹19,000',
-      period: '/ month',
-      beds: 'Up to 25 Beds',
-      branches: '1 Branch',
-      users: 'Up to 15 Users',
-      maxBeds: 25,
-      maxBranches: 1,
-      maxUsers: 15,
-      features: [
-        'One Patient → One Record (UHID)',
-        'OPD Queue & Appointments',
-        'Clinical EMR & e-Prescriptions',
-        'Billing & Cashier Module',
-        'Pharmacy Point-of-Sale'
-      ],
-      badge: 'Clinics'
-    },
-    {
-      id: 'professional',
-      planName: 'Professional (Up to 100 Beds)',
-      displayName: 'Professional Multi-Specialty',
-      price: '₹49,000',
-      period: '/ month',
-      beds: 'Up to 100 Beds',
-      branches: 'Up to 3 Branches',
-      users: 'Up to 50 Users',
-      maxBeds: 100,
-      maxBranches: 3,
-      maxUsers: 50,
-      features: [
-        'Everything in Starter',
-        'Inpatient (IPD) Bed Management',
-        'Nursing Station & MAR Charts',
-        'Diagnostic Lab & Barcode Station',
-        'Radiology Modality Worklist',
-        'Operating Theatre Scheduling'
-      ],
-      badge: 'Popular',
-      isPopular: true
-    },
-    {
-      id: 'enterprise',
-      planName: 'Enterprise (500+ Beds)',
-      displayName: 'Enterprise Hospital Group',
-      price: '₹99,000',
-      period: '/ month',
-      beds: '500+ Beds',
-      branches: 'Unlimited Branches',
-      users: 'Unlimited Users',
-      maxBeds: 500,
-      maxBranches: 99,
-      maxUsers: 500,
-      features: [
-        'Everything in Professional',
-        'Multi-Branch Consolidated Ledger',
-        'ICU High-Acuity Telemetry',
-        'Custom Document Templates',
-        'Fine-Grained RBAC Custom Matrix',
-        '24x7 Dedicated SaaS Engineer SLA'
-      ],
-      badge: 'Enterprise'
-    }
-  ];
+  const planTiers = PLAN_TIERS_LIST;
 
   const fetchTenants = async () => {
     try {
@@ -189,7 +123,14 @@ export const SubscriptionManagement = () => {
       {/* Plans Pricing Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {planTiers.map((p) => {
-          const matchingTenants = tenants.filter(t => t.subscription?.plan === p.planName || (p.id === 'professional' && (!t.subscription?.plan || t.subscription?.plan === 'Professional')));
+          const matchingTenants = tenants.filter(t => {
+            const plan = t.subscription?.plan;
+            if (!plan) return p.id === 'professional';
+            return plan === p.planName ||
+                   (p.id === 'starter' && (plan.includes('Starter') || plan === 'starter')) ||
+                   (p.id === 'professional' && (plan.includes('Professional') || plan === 'professional' || plan === 'Basic' || plan === 'Business')) ||
+                   (p.id === 'enterprise' && (plan.includes('Enterprise') || plan === 'enterprise'));
+          });
           return (
             <Card 
               key={p.id} 

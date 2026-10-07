@@ -48,21 +48,21 @@ export const ICUDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatsCard
           title="Total ICU Beds"
-          value={beds.length || '4'}
+          value={beds.length}
           subtitle="Critical care telemetry bays"
           icon={HeartPulse}
           color="rose"
         />
         <StatsCard
           title="Patients on Inotropic Support"
-          value="2"
+          value="0"
           subtitle="Noradrenaline / Vasopressin"
           icon={Droplets}
           color="amber"
         />
         <StatsCard
           title="Ventilator Assisted"
-          value="1"
+          value="0"
           subtitle="Synchronized Intermittent SIMV"
           icon={Wind}
           color="blue"
@@ -111,29 +111,29 @@ export const ICUDashboard = () => {
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-[10px] text-slate-400 font-bold">HR / PULSE</p>
-                    <p className="text-lg font-black text-slate-800">84</p>
+                    <p className="text-lg font-black text-slate-800">{bed.currentPatient?.vitals?.pulse || '—'}</p>
                     <p className="text-[10px] text-slate-400">bpm</p>
                   </div>
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-[10px] text-slate-400 font-bold">NIBP</p>
-                    <p className="text-lg font-black text-slate-800">124/82</p>
+                    <p className="text-lg font-black text-slate-800">{bed.currentPatient?.vitals?.bp || '—'}</p>
                     <p className="text-[10px] text-slate-400">mmHg</p>
                   </div>
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-[10px] text-slate-400 font-bold">SpO2</p>
-                    <p className="text-lg font-black text-emerald-600">98%</p>
-                    <p className="text-[10px] text-slate-400">on 2L O2</p>
+                    <p className="text-lg font-black text-emerald-600">{bed.currentPatient?.vitals?.spO2 ? `${bed.currentPatient.vitals.spO2}%` : '—'}</p>
+                    <p className="text-[10px] text-slate-400">{bed.currentPatient?.vitals?.spO2 ? 'Room Air' : 'No data'}</p>
                   </div>
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-[10px] text-slate-400 font-bold">GCS SCORE</p>
-                    <p className="text-lg font-black text-teal-600">14/15</p>
-                    <p className="text-[10px] text-slate-400">E4 V4 M6</p>
+                    <p className="text-lg font-black text-teal-600">{bed.currentPatient?.vitals?.gcs || '—'}</p>
+                    <p className="text-[10px] text-slate-400">Telemetry Active</p>
                   </div>
                 </div>
 
                 <div className="pt-2 text-xs text-slate-600">
                   <p>
-                    <strong>Active Infusions:</strong> IV Noradrenaline @ 0.05 mcg/kg/min, IV Furosemide
+                    <strong>Active Infusions:</strong> None recorded
                   </p>
                 </div>
               </div>

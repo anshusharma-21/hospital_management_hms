@@ -38,31 +38,31 @@ export const Table = ({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-xl border border-slate-200/80 ${className}`}>
+    <div className={`overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-xs ${className}`}>
       <table className="w-full text-left text-xs border-collapse">
-        <thead className="bg-slate-50/80 text-slate-600 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200">
+        <thead className="bg-slate-50/90 text-slate-600 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200">
           <tr>
             {columns.map((col, idx) => (
               <th
                 key={idx}
-                className={`py-3 px-4 ${col.className || ''}`}
+                className={`py-3.5 px-4 font-bold ${col.className || ''}`}
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <tbody className="divide-y divide-slate-100/90 bg-white">
           {data.map((row, rIdx) => (
             <tr
               key={row._id || row.id || rIdx}
               onClick={() => onRowClick && onRowClick(row)}
-              className={`transition-colors ${
-                onRowClick ? 'cursor-pointer hover:bg-teal-50/40' : 'hover:bg-slate-50/60'
+              className={`transition-colors duration-100 ${
+                onRowClick ? 'cursor-pointer hover:bg-teal-50/30' : 'hover:bg-slate-50/70'
               }`}
             >
               {columns.map((col, cIdx) => (
-                <td key={cIdx} className={`py-3 px-4 text-slate-700 ${col.cellClassName || ''}`}>
+                <td key={cIdx} className={`py-3.5 px-4 text-slate-700 align-middle ${col.cellClassName || ''}`}>
                   {col.render ? col.render(row) : row[col.accessor]}
                 </td>
               ))}

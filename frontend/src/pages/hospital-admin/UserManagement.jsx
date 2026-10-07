@@ -67,16 +67,8 @@ export const UserManagement = () => {
       }
     } catch (err) {
       console.error(err);
-      // Realistic fallback demo
-      setUsers([
-        { _id: 'u1', name: 'Dr. Arun Sharma', email: 'dr.arun@lifelinehospital.com', phone: '+91 98200 11223', role: 'doctor', doctorProfile: { specialty: 'Internal Medicine', consultationFee: 800, opdRoom: 'OPD-101' }, status: 'active' },
-        { _id: 'u2', name: 'Sister Anita Desai', email: 'nurse.anita@lifelinehospital.com', phone: '+91 98200 44556', role: 'nurse', status: 'active' },
-        { _id: 'u3', name: 'Pooja Verma (Front Desk)', email: 'reception@lifelinehospital.com', phone: '+91 98200 55667', role: 'receptionist', status: 'active' },
-        { _id: 'u4', name: 'Sanjay Kumar (Cashier)', email: 'cashier@lifelinehospital.com', phone: '+91 98200 66778', role: 'billing_cashier', status: 'active' },
-        { _id: 'u5', name: 'Sunil Rao (Pharmacist)', email: 'pharmacist@lifelinehospital.com', phone: '+91 98200 77889', role: 'pharmacist', status: 'active' },
-        { _id: 'u6', name: 'Dr. Sujata Rao (Pathologist)', email: 'lab@lifelinehospital.com', phone: '+91 98200 88990', role: 'lab_tech', status: 'active' },
-        { _id: 'u7', name: 'Dr. Vikram Malhotra (Radiology)', email: 'radiology@lifelinehospital.com', phone: '+91 98200 99001', role: 'radiologist', status: 'active' }
-      ]);
+      setUsers([]);
+      addToast('Failed to load user roster', 'error');
     } finally {
       setLoading(false);
     }
@@ -285,7 +277,7 @@ export const UserManagement = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="doctor@lifelinehospital.com"
+                placeholder="doctor@hospital.com"
                 required
               />
             </div>
