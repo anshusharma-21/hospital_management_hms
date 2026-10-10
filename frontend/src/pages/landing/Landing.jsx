@@ -568,18 +568,37 @@ export const Landing = () => {
               </div>
             </div>
 
-            {/* ⭐ RIGHT SIDE: SEAMLESS CLINICAL DOCTOR (INTERACTIVE HOVER EFFECT) */}
+            {/* ⭐ RIGHT SIDE: REAL SAAS EXECUTIVE DASHBOARD SCREENSHOT */}
             <div className="lg:col-span-5 relative flex items-center justify-center lg:justify-end group cursor-pointer">
-              <div className="relative w-full max-w-md sm:max-w-lg transition-all duration-500 ease-out group-hover:scale-105 group-hover:-translate-y-1.5 group-hover:drop-shadow-xl">
-                <img
-                  src="/hero-doctor-portrait.jpg"
-                  alt="Modern Hospital Clinical Leadership"
-                  className="w-full h-auto object-cover select-none pointer-events-none transition-all duration-500 group-hover:brightness-[1.03]"
-                  style={{
-                    maskImage: 'linear-gradient(to right, transparent 0%, black 16%)',
-                    WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 16%)'
-                  }}
-                />
+              <div className="relative w-full max-w-lg lg:max-w-xl transition-all duration-500 ease-out group-hover:scale-[1.02] group-hover:-translate-y-1">
+                {/* Glowing Ambient Aura */}
+                <div className="absolute -inset-2 bg-gradient-to-tr from-teal-500/25 via-cyan-400/20 to-sky-500/25 rounded-3xl blur-xl opacity-60 group-hover:opacity-90 transition-opacity duration-500"></div>
+
+                {/* Dashboard Window Frame */}
+                <div className="relative rounded-2xl bg-white border border-slate-200/90 shadow-2xl overflow-hidden ring-1 ring-slate-900/5 group-hover:border-teal-300 transition-colors duration-300">
+                  {/* Browser / OS Window Header Bar */}
+                  <div className="px-3.5 py-2.5 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 border-b border-slate-200/80 flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-400"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 bg-white/90 px-3 py-0.5 rounded-full border border-slate-200/70 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                      <span>Hospital Vision SaaS Executive Console</span>
+                    </div>
+                    <div className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/60">
+                      LIVE
+                    </div>
+                  </div>
+
+                  {/* Real Dashboard Screenshot */}
+                  <img
+                    src="/saas-admin-dashboard.png"
+                    alt="Hospital Vision Real SaaS Executive Dashboard"
+                    className="w-full h-auto object-cover select-none transition-all duration-500 group-hover:brightness-[1.01]"
+                  />
+                </div>
               </div>
             </div>
 

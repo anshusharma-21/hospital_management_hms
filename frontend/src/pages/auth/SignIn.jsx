@@ -59,7 +59,7 @@ export const SignIn = () => {
     {
       role: 'Doctor (EMR)',
       email: 'pallavi@gmail.com',
-      password: 'pallavi',
+      password: 'pallavimain',
       icon: Stethoscope,
       tag: 'Clinical Encounters (Dr. Pallavi)',
       color: 'bg-sky-50 border-sky-200 text-sky-800 hover:border-sky-400'
@@ -67,7 +67,7 @@ export const SignIn = () => {
     {
       role: 'Reception / OPD',
       email: 'rani@gmail.com',
-      password: 'Password123!',
+      password: 'ranimain',
       icon: UserCheck,
       tag: 'Token & Booking (Rani Kumari)',
       color: 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:border-indigo-400'
@@ -75,7 +75,7 @@ export const SignIn = () => {
     {
       role: 'Inpatient Nurse',
       email: 'priya@gmail.com',
-      password: 'Password123!',
+      password: 'priyamain',
       icon: HeartPulse,
       tag: 'MAR & Vitals (Priya Yadav)',
       color: 'bg-rose-50 border-rose-200 text-rose-800 hover:border-rose-400'
@@ -83,7 +83,7 @@ export const SignIn = () => {
     {
       role: 'Cashier / Billing',
       email: 'kamal@gmail.com',
-      password: 'Password123!',
+      password: 'kamalmain',
       icon: CreditCard,
       tag: 'Invoices & TPA (Kamal Kumar)',
       color: 'bg-amber-50 border-amber-200 text-amber-800 hover:border-amber-400'
@@ -91,7 +91,7 @@ export const SignIn = () => {
     {
       role: 'Pharmacist',
       email: 'muskan@gmail.com',
-      password: 'Password123!',
+      password: 'muskanmain',
       icon: Pill,
       tag: 'Inventory & POS (Muskan Mehta)',
       color: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:border-emerald-400'
@@ -99,7 +99,7 @@ export const SignIn = () => {
     {
       role: 'Lab Technologist',
       email: 'jk@gmail.com',
-      password: 'Password123!',
+      password: 'jkmain',
       icon: FlaskConical,
       tag: 'Pathology Reports (JK)',
       color: 'bg-purple-50 border-purple-200 text-purple-800 hover:border-purple-400'
@@ -129,6 +129,8 @@ export const SignIn = () => {
     setPassword(acc.password);
     setSelectedDemoRole(acc.role);
     setErrorMessage('');
+    // Direct 1-click login into role dashboard
+    executeLogin(acc.email, acc.password);
   };
 
   const executeLogin = async (loginEmail, loginPassword) => {
