@@ -22,6 +22,7 @@ import {
   Trash2,
   ArrowRight
 } from 'lucide-react';
+import { isValidPhoneNumber, isValidEmail, getPhoneErrorMessage } from '../../utils/validation';
 
 export const PatientRegistration = () => {
   const navigate = useNavigate();
@@ -133,6 +134,42 @@ export const PatientRegistration = () => {
       addToast({
         title: 'Validation Error',
         message: 'Please provide patient first name and mobile number',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (!isValidPhoneNumber(formData.phone)) {
+      addToast({
+        title: 'Invalid Mobile Number',
+        message: getPhoneErrorMessage(formData.phone, 'Primary mobile number') || 'Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formData.alternatePhone && !isValidPhoneNumber(formData.alternatePhone)) {
+      addToast({
+        title: 'Invalid Alternate Mobile',
+        message: getPhoneErrorMessage(formData.alternatePhone, 'Alternate mobile') || 'Alternate mobile must be 10 digits starting with 6, 7, 8, or 9',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formData.emergencyContact?.phone && !isValidPhoneNumber(formData.emergencyContact.phone)) {
+      addToast({
+        title: 'Invalid Emergency Phone',
+        message: getPhoneErrorMessage(formData.emergencyContact.phone, 'Emergency contact phone') || 'Emergency phone must be 10 digits starting with 6, 7, 8, or 9',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formData.email && !isValidEmail(formData.email)) {
+      addToast({
+        title: 'Invalid Email Address',
+        message: 'Please provide a valid email format (e.g. patient@example.com)',
         type: 'error'
       });
       return;
@@ -302,15 +339,17 @@ export const PatientRegistration = () => {
             <Input
               label="Mobile Number (Primary)"
               required
+              isPhone={true}
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="10-digit mobile (e.g. 9820011223)"
             />
             <Input
               label="Alternate Mobile"
+              isPhone={true}
               value={formData.alternatePhone}
               onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
-              placeholder="Optional alternate"
+              placeholder="Optional alternate (10 digits)"
             />
             <Input
               label="Email Address"
@@ -372,6 +411,7 @@ export const PatientRegistration = () => {
               />
               <Input
                 label="Emergency Phone"
+                isPhone={true}
                 value={formData.emergencyContact.phone}
                 onChange={(e) =>
                   setFormData({
@@ -379,7 +419,7 @@ export const PatientRegistration = () => {
                     emergencyContact: { ...formData.emergencyContact, phone: e.target.value }
                   })
                 }
-                placeholder="e.g. 9820099881"
+                placeholder="10-digit mobile (e.g. 9820099881)"
               />
             </div>
           </div>
@@ -517,9 +557,9 @@ export const PatientRegistration = () => {
           </div>
         </Card>
 
-        {/* Submit */}
-        <div className="flex justify-end gap-3 pt-2">
-          <Button variant="secondary" size="lg" onClick={() => navigate('/patients')}>
+        {/* Submit Action Bar */}
+        <div className="flex items-center justify-end gap-3 pt-4 pb-8 border-t border-slate-200">
+          <Button variant="outline" size="lg" onClick={() => navigate('/patients/search')}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" size="lg" icon={UserPlus} isLoading={submitting}>

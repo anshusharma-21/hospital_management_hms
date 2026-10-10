@@ -8,11 +8,15 @@ export const Table = ({
   emptyMessage = 'No records found in this view',
   onRowClick,
   children,
-  className = ''
+  className = '',
+  borderless = false
 }) => {
+  const isBorderless = borderless || className.includes('border-0') || className.includes('border-none');
+  const borderClasses = isBorderless ? '' : 'rounded-xl border border-slate-200/80';
+
   if (children) {
     return (
-      <div className={`overflow-x-auto rounded-xl border border-slate-200/80 ${className}`}>
+      <div className={`overflow-x-auto ${borderClasses} ${className}`}>
         <table className="w-full text-left text-xs border-collapse">
           {children}
         </table>
@@ -38,7 +42,7 @@ export const Table = ({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-xs ${className}`}>
+    <div className={`overflow-x-auto ${borderClasses} bg-white shadow-xs ${className}`}>
       <table className="w-full text-left text-xs border-collapse">
         <thead className="bg-slate-50/90 text-slate-600 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200">
           <tr>
@@ -75,7 +79,7 @@ export const Table = ({
 };
 
 export const TableHead = ({ children, className = '' }) => (
-  <thead className={`bg-slate-50/80 text-slate-600 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200 ${className}`}>
+  <thead className={`bg-slate-50/90 text-slate-500 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200/80 ${className}`}>
     {children}
   </thead>
 );
@@ -89,20 +93,20 @@ export const TableBody = ({ children, className = '' }) => (
 export const TableRow = ({ children, className = '', onClick }) => (
   <tr 
     onClick={onClick} 
-    className={`transition-colors hover:bg-slate-50/60 ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    className={`transition-colors duration-150 hover:bg-slate-50/75 ${onClick ? 'cursor-pointer' : ''} ${className}`}
   >
     {children}
   </tr>
 );
 
 export const TableHeader = ({ children, className = '' }) => (
-  <th className={`py-3 px-4 font-bold text-slate-600 ${className}`}>
+  <th className={`py-3.5 px-4 font-bold text-slate-600 text-xs text-left ${className}`}>
     {children}
   </th>
 );
 
 export const TableCell = ({ children, className = '', colSpan }) => (
-  <td colSpan={colSpan} className={`py-3 px-4 text-slate-700 ${className}`}>
+  <td colSpan={colSpan} className={`py-3.5 px-4 text-slate-700 align-middle text-xs ${className}`}>
     {children}
   </td>
 );

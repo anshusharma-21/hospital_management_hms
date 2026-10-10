@@ -20,6 +20,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { isValidEmail, isValidPhoneNumber, getPhoneErrorMessage } from '../../utils/validation';
 
 export const CRMCorporate = () => {
   const { addToast } = useToast();
@@ -69,6 +70,14 @@ export const CRMCorporate = () => {
 
   const handleCreateLead = async (e) => {
     e.preventDefault();
+    if (!isValidEmail(leadForm.email)) {
+      addToast('Please provide a valid lead email address', 'error');
+      return;
+    }
+    if (!isValidPhoneNumber(leadForm.phone)) {
+      addToast(getPhoneErrorMessage(leadForm.phone, 'Lead mobile number') || 'Mobile number must be 10 digits starting with 6, 7, 8, or 9', 'error');
+      return;
+    }
     try {
       const res = await api.post('/saas/crm', leadForm);
       if (res.data.success) {
@@ -235,8 +244,10 @@ export const CRMCorporate = () => {
             <div>
               <label className="font-bold text-slate-700 block mb-1">Phone Number</label>
               <Input 
+                isPhone={true}
                 value={leadForm.phone}
                 onChange={(e) => setLeadForm({...leadForm, phone: e.target.value})}
+                placeholder="10-digit mobile (e.g. 9820011000)"
                 required
               />
             </div>

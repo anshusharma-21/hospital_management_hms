@@ -90,6 +90,84 @@ exports.updateBedStatus = async (req, res, next) => {
   }
 };
 
+// @desc    Create a new hospital bed
+// @route   POST /api/v1/ipd/beds
+// @access  Private
+exports.createBed = async (req, res, next) => {
+  try {
+    const {
+      bedNumber,
+      roomNumber,
+      ward,
+      wardType,
+      floor,
+      building,
+      ratePerDay,
+      status,
+      branch
+    } = req.body;
+
+    if (!bedNumber || !roomNumber || !ward || !floor) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bed number, room number, ward, and floor are required'
+      });
+    }
+
+    const tenantId = req.tenantId || req.user?.tenant?._id || req.user?.tenant;
+    let targetBranch = (branch && typeof branch === 'object' ? branch._id : branch) || req.branchId || req.user?.branch?._id || req.user?.branch;
+
+    if (!targetBranch) {
+      return res.status(400).json({
+        success: false,
+        error: 'Target branch is required to provision hospital beds'
+      });
+    }
+
+    const validWardTypes = ['General Male', 'General Female', 'Semi-Private', 'Private Deluxe', 'ICU', 'NICU', 'Emergency', 'Post-Op / Recovery'];
+    const normalizedWardType = validWardTypes.includes(wardType) ? wardType : 'General Male';
+
+    let normalizedStatus = status || 'Available';
+    if (normalizedStatus.includes('Available')) normalizedStatus = 'Available';
+    else if (normalizedStatus.includes('Cleaning')) normalizedStatus = 'Cleaning';
+    else if (normalizedStatus.includes('Maintenance')) normalizedStatus = 'Maintenance';
+    else if (normalizedStatus.includes('Blocked')) normalizedStatus = 'Blocked';
+    else if (normalizedStatus.includes('Reserved')) normalizedStatus = 'Reserved';
+    else if (normalizedStatus.includes('Occupied')) normalizedStatus = 'Occupied';
+
+    const existingBed = await Bed.findOne({
+      tenant: tenantId,
+      branch: targetBranch,
+      bedNumber: bedNumber.trim().toUpperCase()
+    });
+
+    if (existingBed) {
+      return res.status(400).json({
+        success: false,
+        error: `Bed ${bedNumber.trim().toUpperCase()} already exists in this hospital branch`
+      });
+    }
+
+    const newBed = await Bed.create({
+      tenant: tenantId,
+      branch: targetBranch,
+      bedNumber: bedNumber.trim().toUpperCase(),
+      roomNumber: roomNumber.trim(),
+      ward: ward.trim(),
+      wardType: normalizedWardType,
+      floor: floor.trim(),
+      building: building?.trim() || 'Main Tower',
+      ratePerDay: Number(ratePerDay) || 1500,
+      status: normalizedStatus,
+      lastSanitizedAt: normalizedStatus === 'Available' ? new Date() : undefined
+    });
+
+    res.status(201).json({ success: true, data: newBed });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ==================== ADMISSIONS ====================
 
 // @desc    Get admitted patients list

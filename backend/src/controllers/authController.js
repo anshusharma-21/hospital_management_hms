@@ -180,3 +180,120 @@ exports.getMe = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Update user profile (Name, email, phone, avatar)
+// @route   PUT /api/v1/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { name, email, phone, avatar } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (email && email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ success: false, error: 'Email is already in use by another user' });
+      }
+      user.email = email.toLowerCase().trim();
+    }
+
+    if (name) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+
+    await AuditLog.create({
+      tenant: user.tenant?._id,
+      user: user._id,
+      userName: user.name,
+      userRole: user.role,
+      action: 'Profile Details Updated',
+      module: 'Auth / Security',
+      details: `Administrator ${user.name} (${user.email}) updated profile information`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        role: user.role,
+        tenant: user.tenant,
+        branch: user.branch
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update user password
+// @route   PUT /api/v1/auth/password
+// @access  Private
+exports.updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide both current password and new password'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 6 characters long'
+      });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    await AuditLog.create({
+      tenant: user.tenant?._id,
+      user: user._id,
+      userName: user.name,
+      userRole: user.role,
+      action: 'Password Changed',
+      module: 'Auth / Security',
+      details: `Administrator ${user.name} (${user.email}) updated their account password`
+    });
+
+    const token = user.getSignedJwtToken();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+      token
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+

@@ -116,11 +116,15 @@ const ALLOWED_PLAN_ENUMS = [
   'Starter (Up to 25 Beds)',
   'Professional (Up to 100 Beds)',
   'Enterprise (500+ Beds)',
+  'Basic (Up to 25 Beds)',
+  'Business (500+ Beds)',
   'Custom',
   // Canonical codes
   'starter',
   'professional',
   'enterprise',
+  'basic',
+  'business',
   'custom',
   // Preserved legacy stored values
   'Basic',
@@ -145,20 +149,24 @@ const normalizePlan = (plan) => {
   if (trimmed === 'Professional') return 'Professional';
   if (trimmed === 'Custom' || lower === 'custom') return 'Custom';
 
-  // Starter variants (handles "starter", "Starter (Up to 30 Beds)", "Starter (Up to 25 Beds)")
+  // Starter / Basic variants (handles "starter", "basic", "Basic (Up to 25 Beds)", "Starter (Up to 25 Beds)")
   if (
     lower === 'starter' ||
     lower.includes('starter') ||
+    lower === 'basic' ||
+    lower.includes('basic') ||
     lower.includes('30 beds') ||
     lower.includes('25 beds')
   ) {
     return SUBSCRIPTION_PLANS.starter.planName;
   }
 
-  // Enterprise variants (handles "enterprise", "Enterprise (Up to 500 Beds)", "Enterprise (500+ Beds)")
+  // Enterprise / Business variants (handles "enterprise", "business", "Business (500+ Beds)", "Enterprise (500+ Beds)")
   if (
     lower === 'enterprise' ||
     lower.includes('enterprise') ||
+    lower === 'business' ||
+    lower.includes('business') ||
     lower.includes('500 beds') ||
     lower.includes('500+')
   ) {

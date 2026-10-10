@@ -9,7 +9,10 @@ import {
   AlertOctagon, 
   CheckCircle2, 
   Edit3,
-  Search
+  Search,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -19,19 +22,43 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { useAuth } from '../../context/AuthContext';
+import { isValidEmail, isValidPhoneNumber, getPhoneErrorMessage } from '../../utils/validation';
 
 export const BranchManagement = () => {
   const { addToast } = useToast();
-  const { user, role, branch } = useAuth();
+  const { user, role, branch, activeBranch } = useAuth();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const canCreateBranch = ['super_admin', 'saas_admin', 'hospital_admin', 'org_admin'].includes(role || user?.role) ||
-    Boolean(
-      (user?.branch && (user.branch.isMain || user.branch.branchType === 'Main Hospital' || user.branch.code === 'MAIN')) ||
-      (branch && (branch.isMain || branch.branchType === 'Main Hospital' || branch.code === 'MAIN'))
-    );
+  // Determine currently active operating branch (from top navbar or user context)
+  const currentOperatingBranch = activeBranch || branch || (typeof user?.branch === 'object' ? user?.branch : null);
+
+  // Check if currently operating on the Primary Main Branch
+  const isOperatingOnMainBranch = Boolean(
+    currentOperatingBranch && (
+      currentOperatingBranch.isMain === true ||
+      currentOperatingBranch.code === 'MAIN' ||
+      currentOperatingBranch.branchType === 'Main Hospital'
+    )
+  );
+
+  // Check if the logged-in user is assigned to a Sub-Branch
+  const userAssignedBranchId = user?.branch?._id || (typeof user?.branch === 'string' ? user?.branch : null);
+  const userAssignedBranch = branches.find(b => b._id === userAssignedBranchId) || (typeof user?.branch === 'object' ? user?.branch : null);
+  const isUserAssignedToSubBranch = Boolean(
+    userAssignedBranch &&
+    !userAssignedBranch.isMain &&
+    userAssignedBranch.code !== 'MAIN' &&
+    userAssignedBranch.branchType !== 'Main Hospital'
+  );
+
+  const isPlatformSuperAdmin = ['super_admin', 'saas_admin'].includes(role || user?.role);
+
+  // STRICT HIERARCHY RULE: Only Main Branch can create new branches! Sub-branches cannot create branches!
+  const canCreateBranch = isPlatformSuperAdmin || (!isUserAssignedToSubBranch && isOperatingOnMainBranch);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -81,8 +108,21 @@ export const BranchManagement = () => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (!canCreateBranch) {
+      addToast('Branch creation is restricted to the Primary Main Branch administration.', 'error');
+      return;
+    }
+
     if (!formData.name?.trim() || !formData.code?.trim()) {
       addToast('Branch name and code are required', 'warning');
+      return;
+    }
+    if (formData.phone && !isValidPhoneNumber(formData.phone)) {
+      addToast(getPhoneErrorMessage(formData.phone, 'Branch phone') || 'Branch phone must be 10 digits starting with 6, 7, 8, or 9', 'warning');
+      return;
+    }
+    if (formData.email && !isValidEmail(formData.email)) {
+      addToast('Please provide a valid branch email address', 'warning');
       return;
     }
 
@@ -123,6 +163,42 @@ export const BranchManagement = () => {
     }
   };
 
+  const handleDeleteBranch = async () => {
+    if (!branchToDelete || isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      const userRes = await api.get('/auth/me');
+      const tenantId = userRes.data.user?.tenant?._id || userRes.data.user?.tenant;
+
+      if (!tenantId) {
+        addToast('Hospital tenant context not found. Please re-login.', 'error');
+        return;
+      }
+
+      const res = await api.delete(`/tenants/${tenantId}/branches/${branchToDelete._id}`);
+      if (res.data?.success) {
+        addToast(`Branch "${branchToDelete.name}" deleted successfully!`, 'success');
+        
+        // If the deleted branch was active in localStorage, heal it
+        const currentActive = localStorage.getItem('hv_active_branch');
+        if (currentActive && (currentActive.includes(branchToDelete._id) || currentActive.includes(branchToDelete.code))) {
+          localStorage.removeItem('hv_active_branch');
+          window.dispatchEvent(new CustomEvent('hv_branch_reset'));
+        }
+        
+        setBranchToDelete(null);
+        fetchBranches();
+      }
+    } catch (err) {
+      console.error('[Branch Delete Error]:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to delete branch';
+      addToast(msg, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -138,10 +214,15 @@ export const BranchManagement = () => {
             </div>
           </div>
         </div>
-        {canCreateBranch && (
+        {canCreateBranch ? (
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Add New Branch
           </Button>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs shadow-2xs">
+            <ShieldCheck className="w-4 h-4 text-teal-600" />
+            <span className="font-semibold text-slate-700">Branch Creation Restricted to Main Campus</span>
+          </div>
         )}
       </div>
 
@@ -168,7 +249,19 @@ export const BranchManagement = () => {
                 <h3 className="font-bold text-slate-900 text-base mt-1.5">{b.name}</h3>
                 <p className="text-xs text-slate-500">{b.branchType}</p>
               </div>
-              <Badge variant="success">Operational</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="success">Operational</Badge>
+                {canCreateBranch && !(b.isMain || b.branchType === 'Main Hospital' || b.code === 'MAIN') && (
+                  <button
+                    type="button"
+                    onClick={() => setBranchToDelete(b)}
+                    title={`Delete ${b.name}`}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-300 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 mb-4">
@@ -238,9 +331,10 @@ export const BranchManagement = () => {
             <div>
               <label className="font-bold text-slate-700 block mb-1">Phone Number</label>
               <Input 
+                isPhone={true}
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="e.g. +91 98765 43210"
+                placeholder="10-digit mobile (e.g. 9876543210)"
                 required
               />
             </div>
@@ -308,6 +402,51 @@ export const BranchManagement = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Branch Confirmation Modal */}
+      {branchToDelete && (
+        <Modal
+          isOpen={!!branchToDelete}
+          onClose={() => setBranchToDelete(null)}
+          title="Delete Hospital Branch"
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-rose-900 text-sm">
+                  Permanently delete {branchToDelete.name}?
+                </p>
+                <p className="text-rose-700 text-xs mt-1 leading-relaxed">
+                  Are you sure you want to delete branch <span className="font-bold">{branchToDelete.name}</span> (Code: {branchToDelete.code})? Any staff assigned to this branch will be safely reassigned to the central Main Hospital campus.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setBranchToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteBranch}
+                disabled={isDeleting}
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

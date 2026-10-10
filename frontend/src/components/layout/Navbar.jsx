@@ -9,10 +9,12 @@ import {
   LogOut,
   ChevronDown,
   Building,
-  Check
+  Check,
+  Globe,
+  Menu
 } from 'lucide-react';
 
-export const Navbar = ({ onOpenSearch }) => {
+export const Navbar = ({ onOpenSearch, onToggleMobileSidebar }) => {
   const { user, role, tenant, branch, activeBranch, availableBranches, switchBranch, logout } = useAuth();
   const navigate = useNavigate();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -46,11 +48,35 @@ export const Navbar = ({ onOpenSearch }) => {
     navigate('/signin');
   };
 
+  const getDashboardHome = () => {
+    const r = role || user?.role;
+    if (r === 'super_admin' || r === 'saas_admin') return '/saas/dashboard';
+    if (r === 'doctor') return '/clinical/dashboard';
+    if (r === 'nurse') return '/nursing/dashboard';
+    if (r === 'receptionist') return '/front-desk/dashboard';
+    if (r === 'billing_cashier') return '/billing/dashboard';
+    if (r === 'pharmacist') return '/pharmacy/dashboard';
+    if (r === 'lab_tech') return '/diagnostics/lab';
+    if (r === 'radiologist') return '/diagnostics/radiology';
+    if (r === 'hospital_admin' || r === 'org_admin' || r === 'branch_admin') return '/hospital/dashboard';
+    return '/front-desk/dashboard';
+  };
+
   return (
     <header className="h-16 bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-6 flex items-center justify-between shadow-xs">
       {/* Brand & Organization Context */}
-      <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-        <Link to="/" className="group flex items-center">
+      <div className="flex items-center gap-2 sm:gap-6 shrink-0">
+        <button
+          type="button"
+          onClick={onToggleMobileSidebar}
+          className="md:hidden p-2 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl focus:outline-none transition-colors"
+          aria-label="Open navigation menu"
+          title="Open Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <Link to={getDashboardHome()} className="group flex items-center" title="Go to Dashboard Home">
           <HospitalVisionLogo
             size="md"
             variant="light"
@@ -182,44 +208,68 @@ export const Navbar = ({ onOpenSearch }) => {
 
       {/* Right Navigation & Interactive Controls */}
       <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-        {/* Global Patient Search Trigger */}
-        <button
-          type="button"
-          onClick={onOpenSearch}
-          className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-slate-300 hover:shadow-xs text-slate-400 hover:text-slate-700 transition-all text-xs cursor-pointer"
-          title="Search patient by UHID, Name, or Mobile (Shortcut: /)"
-        >
-          <Search className="w-4 h-4 text-slate-400 group-hover:text-teal-700 transition-colors shrink-0" />
-          <span className="hidden sm:inline font-medium text-slate-500 group-hover:text-slate-800 transition-colors truncate max-w-[140px] md:max-w-[200px]">
-            Search patient...
-          </span>
-          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white group-hover:bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-400 group-hover:text-teal-800 shadow-2xs transition-colors shrink-0">
-            /
-          </kbd>
-        </button>
+        {/* Global Patient Search Trigger (Hidden for SaaS Super Admin) */}
+        {!['super_admin', 'saas_admin'].includes(role || user?.role) && (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-slate-300 hover:shadow-xs text-slate-400 hover:text-slate-700 transition-all text-xs cursor-pointer"
+            title="Search patient by UHID, Name, or Mobile (Shortcut: /)"
+          >
+            <Search className="w-4 h-4 text-slate-400 group-hover:text-teal-700 transition-colors shrink-0" />
+            <span className="hidden sm:inline font-medium text-slate-500 group-hover:text-slate-800 transition-colors truncate max-w-[140px] md:max-w-[200px]">
+              Search patient...
+            </span>
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white group-hover:bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-400 group-hover:text-teal-800 shadow-2xs transition-colors shrink-0">
+              /
+            </kbd>
+          </button>
+        )}
 
         {/* User Profile Avatar with Click Dropdown */}
-        <div className="relative" ref={profileMenuRef}>
+        <div className="relative shrink-0" ref={profileMenuRef}>
           <button
             type="button"
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="relative flex items-center justify-center p-0.5 rounded-full hover:ring-2 hover:ring-teal-700/20 hover:shadow-xs transition-all duration-150 cursor-pointer group"
+            className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-slate-100/90 border border-slate-200/60 hover:border-slate-300 transition-all duration-150 cursor-pointer group"
             title={`${user?.name || 'Staff User'} (${ROLE_LABELS[role] || role})`}
             aria-expanded={profileMenuOpen}
           >
-            <div className="w-8.5 h-8.5 rounded-full bg-teal-800 text-white font-bold text-xs flex items-center justify-center shadow-xs border border-teal-900/20">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            <div className="relative">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-teal-700 to-cyan-800 text-white font-bold text-xs flex items-center justify-center shadow-xs border border-teal-600/30">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.charAt(0)?.toUpperCase() || 'U'
+                )}
+              </div>
+              {/* Online Pulse Status Dot */}
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
             </div>
-            {/* Online Pulse Status Dot */}
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+
+            {/* Clearly Visible User Name & Role Pill */}
+            <div className="hidden sm:flex flex-col text-left max-w-[110px] lg:max-w-[150px]">
+              <span className="text-xs font-bold text-slate-800 leading-tight truncate">
+                {user?.name || 'Staff User'}
+              </span>
+              <span className="text-[10px] text-teal-700 font-semibold leading-tight truncate">
+                {ROLE_LABELS[role] || role || 'Staff'}
+              </span>
+            </div>
+
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform shrink-0" />
           </button>
 
           {/* Clean User Profile Dropdown */}
           {profileMenuOpen && (
             <div className="absolute right-0 mt-2.5 w-64 bg-white rounded-xl border border-slate-200 shadow-modal py-2 z-50 animate-in fade-in-50 zoom-in-95 origin-top-right">
               <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-800 font-extrabold text-sm flex items-center justify-center border border-teal-200 shrink-0">
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-teal-100 text-teal-800 font-extrabold text-sm flex items-center justify-center border border-teal-200 shrink-0">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0)?.toUpperCase() || 'U'
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-slate-800 truncate">{user?.name || 'Staff User'}</p>
@@ -242,7 +292,45 @@ export const Navbar = ({ onOpenSearch }) => {
                 </div>
               )}
 
-              <div className="p-1.5">
+              <div className="p-1.5 space-y-0.5">
+                {/* Profile Settings Link */}
+                <Link
+                  to={
+                    ['super_admin', 'saas_admin'].includes(role || user?.role)
+                      ? '/saas/profile'
+                      : ['hospital_admin', 'org_admin', 'branch_admin'].includes(role || user?.role)
+                      ? '/hospital/users'
+                      : (role || user?.role) === 'doctor'
+                      ? '/clinical/dashboard'
+                      : (role || user?.role) === 'nurse'
+                      ? '/nursing/dashboard'
+                      : (role || user?.role) === 'receptionist'
+                      ? '/front-desk/dashboard'
+                      : (role || user?.role) === 'billing_cashier'
+                      ? '/billing/dashboard'
+                      : '/clinical/dashboard'
+                  }
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-900 transition-colors text-left"
+                >
+                  <Activity className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>
+                    {['super_admin', 'saas_admin', 'hospital_admin', 'org_admin', 'branch_admin'].includes(role || user?.role)
+                      ? 'My Administrator Profile'
+                      : 'My Staff Workspace'}
+                  </span>
+                </Link>
+
+                <Link
+                  to="/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                >
+                  <Globe className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>Public Landing Page</span>
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"

@@ -53,8 +53,8 @@ const prescriptionSchema = new mongoose.Schema({
       quantity: { type: Number, default: 10 },
       instructions: {
         type: String,
-        enum: ['After Food', 'Before Food', 'With Milk', 'Empty Stomach', 'As directed'],
-        default: 'After Food'
+        default: 'After Food',
+        set: v => (v && typeof v === 'string' && v.trim() ? v.trim() : 'After Food')
       },
       dispensedStatus: {
         type: String,

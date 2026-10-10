@@ -13,7 +13,9 @@ exports.getAppointments = async (req, res, next) => {
     const { doctor, date, status, branch } = req.query;
     const query = { tenant: req.tenantId };
 
-    if (doctor && doctor !== 'all') {
+    if (req.user?.role === 'doctor') {
+      query.doctor = req.user._id;
+    } else if (doctor && doctor !== 'all') {
       query.doctor = doctor;
     }
 
@@ -276,11 +278,11 @@ exports.updateAppointmentStatus = async (req, res, next) => {
 // @access  Private
 exports.getLiveQueue = async (req, res, next) => {
   try {
-    const { doctor, branch } = req.query;
-    const today = new Date();
-    const startOfDay = new Date(today);
+    const { doctor, branch, date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
+    const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
 
     const query = {
@@ -289,7 +291,9 @@ exports.getLiveQueue = async (req, res, next) => {
       status: { $in: ['Scheduled', 'Checked-In', 'In-Consultation', 'Completed'] }
     };
 
-    if (doctor && doctor !== 'all') {
+    if (req.user?.role === 'doctor') {
+      query.doctor = req.user._id;
+    } else if (doctor && doctor !== 'all') {
       query.doctor = doctor;
     }
 

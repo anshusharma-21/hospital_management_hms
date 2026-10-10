@@ -24,6 +24,7 @@ export const DoctorDashboard = () => {
   const [criticalLabs, setCriticalLabs] = useState([]);
   const [prescriptionsCount, setPrescriptionsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export const DoctorDashboard = () => {
       try {
         setLoading(true);
         const [queueRes, admRes, labRes, rxRes] = await Promise.all([
-          api.get('/appointments/queue'),
+          api.get(`/appointments/queue?date=${selectedDate}`),
           api.get('/ipd/admissions?status=Admitted'),
           api.get('/diagnostics/lab-orders?criticalOnly=true'),
           api.get('/clinical/prescriptions')
@@ -59,7 +60,7 @@ export const DoctorDashboard = () => {
     };
 
     fetchDoctorData();
-  }, []);
+  }, [selectedDate]);
 
   const queueColumns = [
     {
@@ -216,18 +217,26 @@ export const DoctorDashboard = () => {
 
       {/* Main OPD Queue Card */}
       <Card
-        title="Today's Outpatient Consultation Queue"
-        subtitle="Patients waiting in lobby for examination"
+        title={selectedDate === new Date().toISOString().split('T')[0] ? "Today's Outpatient Consultation Queue" : "Outpatient Consultation Queue"}
+        subtitle={selectedDate === new Date().toISOString().split('T')[0] ? "Patients waiting in lobby for examination" : `Consultation schedule for ${selectedDate}`}
         headerIcon={Users}
         action={
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={ArrowRight}
-            onClick={() => navigate('/front-desk/queue')}
-          >
-            Token Board
-          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={ArrowRight}
+              onClick={() => navigate('/clinical/queue')}
+            >
+              Token Board
+            </Button>
+          </div>
         }
       >
         <Table

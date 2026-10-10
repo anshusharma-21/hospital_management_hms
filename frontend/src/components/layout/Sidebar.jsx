@@ -26,10 +26,13 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Settings,
-  Briefcase
+  Briefcase,
+  UserCog,
+  X
 } from 'lucide-react';
+import { HospitalVisionLogo } from '../common/HospitalVisionLogo';
 
-export const Sidebar = () => {
+export const Sidebar = ({ isOpenMobile = false, onCloseMobile }) => {
   const { role, isPatient } = useAuth();
 
   const navClass = ({ isActive }) =>
@@ -342,6 +345,10 @@ export const Sidebar = () => {
                 <Briefcase className="w-4 h-4" />
                 <span>CRM & Corporate Accounts</span>
               </NavLink>
+              <NavLink to="/saas/profile" className={navClass}>
+                <UserCog className="w-4 h-4" />
+                <span>Admin Profile & Security</span>
+              </NavLink>
               <NavLink to="/saas/audit-logs" className={navClass}>
                 <History className="w-4 h-4" />
                 <span>Platform Security Audit</span>
@@ -356,31 +363,63 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between p-3.5 h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-y-auto">
-      <div className="space-y-6">
-        {renderNavItems()}
+    <>
+      {/* Mobile Drawer Backdrop */}
+      {isOpenMobile && (
+        <div
+          className="md:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 transition-opacity animate-in fade-in"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Cross-Link to Patient Self-Service Portal */}
-        <div className="pt-3 border-t border-slate-100">
-          <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Direct Access</p>
-          <NavLink to="/patient-portal/dashboard" className={navClass}>
-            <Users className="w-4 h-4 text-teal-700" />
-            <span>Patient Portal PWA</span>
-          </NavLink>
+      {/* Sidebar: Responsive Docked on Desktop + Off-Canvas Drawer on Mobile */}
+      <aside
+        className={`bg-white border-r border-slate-200/90 flex flex-col justify-between p-3.5 select-none overflow-y-auto shrink-0 z-50 md:z-auto
+          md:sticky md:top-16 md:w-64 md:h-[calc(100vh-4rem)] md:translate-x-0
+          fixed top-0 bottom-0 left-0 w-72 h-full shadow-2xl md:shadow-none transition-transform duration-300 ease-in-out
+          ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+      >
+        {/* Mobile Header: Logo and Close Button */}
+        <div className="md:hidden flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+          <HospitalVisionLogo size="sm" variant="light" badge="Menu" />
+          <button
+            onClick={onCloseMobile}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      </div>
 
-      {/* Footer Info Box */}
-      <div className="pt-3 border-t border-slate-100 px-2 text-[11px] text-slate-500 space-y-1">
-        <div className="flex items-center justify-between font-semibold text-slate-700">
-          <span>Healthcare Platform</span>
-          <span className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-            Operational
-          </span>
+        <div className="space-y-6">
+          <div onClick={onCloseMobile}>
+            {renderNavItems()}
+          </div>
+
+          {/* Cross-Link to Patient Self-Service Portal */}
+          <div className="pt-3 border-t border-slate-100" onClick={onCloseMobile}>
+            <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Direct Access</p>
+            <NavLink to="/patient-portal/dashboard" className={navClass}>
+              <Users className="w-4 h-4 text-teal-700" />
+              <span>Patient Portal PWA</span>
+            </NavLink>
+          </div>
         </div>
-        <p className="truncate text-slate-400 text-[10px]">Hospital Vision Multi-Tenant</p>
-      </div>
-    </aside>
+
+        {/* Footer Info Box */}
+        <div className="pt-3 border-t border-slate-100 px-2 text-[11px] text-slate-500 space-y-1">
+          <div className="flex items-center justify-between font-semibold text-slate-700">
+            <span>Healthcare Platform</span>
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              Operational
+            </span>
+          </div>
+          <p className="truncate text-slate-400 text-[10px]">Hospital Vision Multi-Tenant</p>
+        </div>
+      </aside>
+    </>
   );
 };

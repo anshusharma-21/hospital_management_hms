@@ -6,7 +6,8 @@ import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { GlobalSearchModal } from './components/layout/GlobalSearchModal';
 
-// Auth Pages
+// Public Landing & Auth Pages
+import { Landing } from './pages/landing/Landing';
 import { SignIn } from './pages/auth/SignIn';
 
 // Front Desk / Patient Operations
@@ -68,6 +69,7 @@ import { TenantOnboarding } from './pages/saas-admin/TenantOnboarding';
 import { SubscriptionManagement } from './pages/saas-admin/SubscriptionManagement';
 import { FeatureFlags } from './pages/saas-admin/FeatureFlags';
 import { CRMCorporate } from './pages/saas-admin/CRMCorporate';
+import { SaasProfile } from './pages/saas-admin/SaasProfile';
 
 // Patient Portal Dedicated Suite
 import { PatientLayout } from './components/layout/PatientLayout';
@@ -177,14 +179,21 @@ const PatientProtectedRoute = ({ children }) => {
 const Layout = ({ children }) => {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const isAuthPage = location.pathname === '/signin' || location.pathname === '/login' || location.pathname === '/patient-portal/login';
+  // Close mobile sidebar on page/route change
+  React.useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
+
+  const isLandingPage = location.pathname === '/' || location.pathname === '/landing';
+  const isAuthPage = location.pathname === '/signin' || location.pathname === '/login' || location.pathname === '/patient-portal/login' || location.pathname === '/onboarding';
   const isPatientPortal = location.pathname.startsWith('/patient-portal');
 
   // Keyboard shortcut '/' opens global patient search ONLY on staff dashboard
   React.useEffect(() => {
+    if (isPatientPortal || isLandingPage || isAuthPage) return;
     const handleKeyDown = (e) => {
-      if (isPatientPortal) return;
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
         e.preventDefault();
         setIsSearchOpen(true);
@@ -192,9 +201,9 @@ const Layout = ({ children }) => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPatientPortal]);
+  }, [isPatientPortal, isLandingPage, isAuthPage]);
 
-  if (isAuthPage) {
+  if (isLandingPage || isAuthPage) {
     return <main>{children}</main>;
   }
 
@@ -205,11 +214,17 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-900 flex flex-col font-sans antialiased selection:bg-teal-100 selection:text-teal-900">
-      <Navbar onOpenSearch={() => setIsSearchOpen(true)} />
+      <Navbar 
+        onOpenSearch={() => setIsSearchOpen(true)} 
+        onToggleMobileSidebar={() => setMobileSidebarOpen((prev) => !prev)}
+      />
       
       <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+        <Sidebar 
+          isOpenMobile={mobileSidebarOpen} 
+          onCloseMobile={() => setMobileSidebarOpen(false)} 
+        />
+        <main className="flex-1 p-3 sm:p-5 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>
       </div>
@@ -236,10 +251,12 @@ export default function App() {
         <Router>
           <Layout>
             <Routes>
-              {/* Public Auth */}
+              {/* Public Landing, Auth & SaaS Trial Onboarding */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/signin" element={<SignIn />} />
               <Route path="/login" element={<Navigate to="/signin" replace />} />
-              <Route path="/" element={<Navigate to="/signin" replace />} />
+              <Route path="/onboarding" element={<TenantOnboarding />} />
 
               {/* Front Desk / Patient Operations */}
               <Route path="/front-desk/dashboard" element={<ProtectedRoute allowedRoles={ROLES_FRONT_DESK}><ReceptionDashboard /></ProtectedRoute>} />
@@ -258,6 +275,20 @@ export default function App() {
               <Route path="/clinical/prescriptions" element={<ProtectedRoute allowedRoles={ROLES_CLINICAL}><PrescriptionList /></ProtectedRoute>} />
               <Route path="/clinical/lab-orders" element={<ProtectedRoute allowedRoles={ROLES_CLINICAL}><LabDashboard /></ProtectedRoute>} />
               <Route path="/clinical/ipd-rounds" element={<ProtectedRoute allowedRoles={ROLES_CLINICAL}><BedBoard /></ProtectedRoute>} />
+
+              {/* Role Aliases to Prevent 404 / Signin Redirects */}
+              <Route path="/doctor" element={<Navigate to="/clinical/dashboard" replace />} />
+              <Route path="/doctor/dashboard" element={<Navigate to="/clinical/dashboard" replace />} />
+              <Route path="/doctor/queue" element={<Navigate to="/clinical/queue" replace />} />
+              <Route path="/doctor/consultation" element={<Navigate to="/clinical/consultation" replace />} />
+              <Route path="/doctor/prescriptions" element={<Navigate to="/clinical/prescriptions" replace />} />
+              <Route path="/hospital" element={<Navigate to="/hospital/dashboard" replace />} />
+              <Route path="/branches" element={<Navigate to="/hospital/branches" replace />} />
+              <Route path="/reception" element={<Navigate to="/front-desk/dashboard" replace />} />
+              <Route path="/billing" element={<Navigate to="/billing/dashboard" replace />} />
+              <Route path="/nursing" element={<Navigate to="/nursing/dashboard" replace />} />
+              <Route path="/pharmacy" element={<Navigate to="/pharmacy/dashboard" replace />} />
+              <Route path="/lab" element={<Navigate to="/diagnostics/lab" replace />} />
 
               {/* Nursing & IPD */}
               <Route path="/nursing/dashboard" element={<ProtectedRoute allowedRoles={ROLES_NURSING_IPD}><NursingDashboard /></ProtectedRoute>} />
@@ -305,6 +336,7 @@ export default function App() {
               <Route path="/saas/subscriptions" element={<ProtectedRoute allowedRoles={ROLES_SAAS_ADMIN}><SubscriptionManagement /></ProtectedRoute>} />
               <Route path="/saas/feature-flags" element={<ProtectedRoute allowedRoles={ROLES_SAAS_ADMIN}><FeatureFlags /></ProtectedRoute>} />
               <Route path="/saas/crm" element={<ProtectedRoute allowedRoles={ROLES_SAAS_ADMIN}><CRMCorporate /></ProtectedRoute>} />
+              <Route path="/saas/profile" element={<ProtectedRoute allowedRoles={ROLES_SAAS_ADMIN}><SaasProfile /></ProtectedRoute>} />
               <Route path="/saas/audit-logs" element={<ProtectedRoute allowedRoles={ROLES_SAAS_ADMIN}><AuditLogs /></ProtectedRoute>} />
 
               {/* Dedicated Patient Portal Suite (Strict Patient Protected Routes) */}

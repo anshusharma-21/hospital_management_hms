@@ -30,8 +30,15 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['Cash', 'UPI / QR Code', 'Credit Card', 'Debit Card', 'Net Banking', 'Insurance TPA Direct', 'Cheque / DD'],
-    default: 'Cash'
+    enum: ['Cash', 'UPI / QR Code', 'UPI / QR', 'UPI', 'Credit Card', 'Debit Card', 'Card', 'Net Banking', 'Insurance TPA Direct', 'TPA / Ins', 'Insurance', 'Cheque / DD', 'Other'],
+    default: 'Cash',
+    set: (v) => {
+      if (!v) return 'Cash';
+      if (v === 'Card') return 'Credit Card';
+      if (v === 'UPI / QR' || v === 'UPI') return 'UPI / QR Code';
+      if (v === 'TPA / Ins' || v === 'Insurance') return 'Insurance TPA Direct';
+      return v;
+    }
   },
   paymentType: {
     type: String,

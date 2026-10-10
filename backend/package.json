@@ -4,8 +4,8 @@
   "description": "Hospital Vision Multi-Tenant HMS Backend (Node.js/Express + MongoDB)",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
+    "start": "node --watch src/server.js",
+    "dev": "node --watch src/server.js",
     "seed": "node src/utils/seedData.js",
     "test": "node --test test/*.test.js",
     "test:phase1": "node --test test/phase1_p0_fixes_and_rbac.test.js",

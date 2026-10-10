@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
 import {
   BedDouble,
   User,
@@ -16,7 +17,10 @@ import {
   Wrench,
   CheckCircle2,
   Filter,
-  UserPlus
+  UserPlus,
+  Plus,
+  Layers,
+  ShieldAlert
 } from 'lucide-react';
 
 export const BedBoard = () => {
@@ -31,8 +35,71 @@ export const BedBoard = () => {
   const [selectedBed, setSelectedBed] = useState(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [targetBedId, setTargetBedId] = useState('');
+
+  // Add Bed Modal State
+  const [addBedModalOpen, setAddBedModalOpen] = useState(false);
+  const [addingBed, setAddingBed] = useState(false);
+  const [newBedForm, setNewBedForm] = useState({
+    bedNumber: '',
+    roomNumber: '',
+    ward: 'General Medical Ward (Male)',
+    wardType: 'General Male',
+    floor: '2nd Floor',
+    building: 'Main Tower',
+    ratePerDay: 1500,
+    status: 'Available'
+  });
+
   const { addToast } = useToast();
   const navigate = useNavigate();
+
+  const handleCreateBed = async (e) => {
+    e?.preventDefault();
+    if (!newBedForm.bedNumber?.trim() || !newBedForm.roomNumber?.trim()) {
+      addToast({
+        title: 'Validation Error',
+        message: 'Bed number and room number are required',
+        type: 'error'
+      });
+      return;
+    }
+    setAddingBed(true);
+    const branchId = activeBranch?._id || activeBranch?.id || (typeof activeBranch === 'string' ? activeBranch : undefined);
+    try {
+      const res = await api.post('/ipd/beds', {
+        ...newBedForm,
+        branch: branchId
+      });
+      if (res.data.success) {
+        addToast({
+          title: 'Bed Provisioned',
+          message: `Bed ${res.data.data.bedNumber} added successfully to ${res.data.data.ward}`,
+          type: 'success'
+        });
+        setAddBedModalOpen(false);
+        setNewBedForm({
+          bedNumber: '',
+          roomNumber: '',
+          ward: 'General Medical Ward (Male)',
+          wardType: 'General Male',
+          floor: '2nd Floor',
+          building: 'Main Tower',
+          ratePerDay: 1500,
+          status: 'Available'
+        });
+        fetchBeds();
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Could not provision new bed';
+      addToast({
+        title: 'Provisioning Failed',
+        message: errorMsg,
+        type: 'error'
+      });
+    } finally {
+      setAddingBed(false);
+    }
+  };
 
   const fetchBeds = async () => {
     try {
@@ -139,10 +206,20 @@ export const BedBoard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Wards & Bed Board Grid</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Wards & Bed Board Grid</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Operational bed occupancy management, sanitization workflows, and transfer anti-collision
+            Operational bed occupancy management, sanitization workflows, condition triage, and bed provisioning
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="primary"
+            size="md"
+            icon={Plus}
+            onClick={() => setAddBedModalOpen(true)}
+          >
+            + Add New Bed
+          </Button>
         </div>
       </div>
 
@@ -285,6 +362,22 @@ export const BedBoard = () => {
                 >
                   Maintenance
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={ShieldAlert}
+                  onClick={() => handleUpdateStatus('Blocked')}
+                >
+                  Block Bed
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Layers}
+                  onClick={() => handleUpdateStatus('Reserved')}
+                >
+                  Reserve Bed
+                </Button>
                 {selectedBed.status === 'Occupied' && (
                   <Button
                     variant="secondary"
@@ -336,6 +429,133 @@ export const BedBoard = () => {
               Confirm Patient Transfer
             </Button>
           </div>
+        </Modal>
+      )}
+
+      {/* Add New Bed Modal */}
+      {addBedModalOpen && (
+        <Modal
+          isOpen={addBedModalOpen}
+          onClose={() => setAddBedModalOpen(false)}
+          title="Provision New Hospital Bed"
+          subtitle="Configure ward location, room number, daily rate, and initial operational state"
+          maxWidth="max-w-lg"
+        >
+          <form onSubmit={handleCreateBed} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Bed Number / Identifier"
+                required
+                placeholder="e.g. B-103, ICU-05, DLX-02"
+                value={newBedForm.bedNumber}
+                onChange={(e) => setNewBedForm({ ...newBedForm, bedNumber: e.target.value })}
+              />
+              <Input
+                label="Room Number"
+                required
+                placeholder="e.g. Room 103, ICU Bay 2"
+                value={newBedForm.roomNumber}
+                onChange={(e) => setNewBedForm({ ...newBedForm, roomNumber: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Ward / Department"
+                value={newBedForm.ward}
+                onChange={(e) => setNewBedForm({ ...newBedForm, ward: e.target.value })}
+                options={[
+                  { value: 'General Medical Ward (Male)', label: 'General Medical Ward (Male)' },
+                  { value: 'General Medical Ward (Female)', label: 'General Medical Ward (Female)' },
+                  { value: 'Semi-Private Ward', label: 'Semi-Private Ward' },
+                  { value: 'Private Deluxe Suite', label: 'Private Deluxe Suite' },
+                  { value: 'ICU (Intensive Care Unit)', label: 'ICU (Intensive Care Unit)' },
+                  { value: 'NICU (Neonatal ICU)', label: 'NICU (Neonatal ICU)' },
+                  { value: 'Emergency Triage Bay', label: 'Emergency Triage Bay' },
+                  { value: 'Post-Op / Recovery', label: 'Post-Op / Recovery' }
+                ]}
+              />
+              <Select
+                label="Ward Category"
+                value={newBedForm.wardType}
+                onChange={(e) => setNewBedForm({ ...newBedForm, wardType: e.target.value })}
+                options={[
+                  { value: 'General Male', label: 'General Male' },
+                  { value: 'General Female', label: 'General Female' },
+                  { value: 'Semi-Private', label: 'Semi-Private' },
+                  { value: 'Private Deluxe', label: 'Private Deluxe' },
+                  { value: 'ICU', label: 'ICU' },
+                  { value: 'NICU', label: 'NICU' },
+                  { value: 'Emergency', label: 'Emergency' },
+                  { value: 'Post-Op / Recovery', label: 'Post-Op / Recovery' }
+                ]}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Hospital Floor"
+                value={newBedForm.floor}
+                onChange={(e) => setNewBedForm({ ...newBedForm, floor: e.target.value })}
+                options={[
+                  { value: 'Ground Floor', label: 'Ground Floor (Emergency & Diagnostics)' },
+                  { value: '1st Floor', label: '1st Floor (General Medical & Surgical)' },
+                  { value: '2nd Floor', label: '2nd Floor (Semi-Private & Private Suites)' },
+                  { value: '3rd Floor', label: '3rd Floor (ICU, CCU, & Critical Care)' },
+                  { value: '4th Floor', label: '4th Floor (Maternity, NICU, & Pediatrics)' }
+                ]}
+              />
+              <Input
+                label="Building / Wing"
+                placeholder="e.g. Main Tower, East Wing"
+                value={newBedForm.building}
+                onChange={(e) => setNewBedForm({ ...newBedForm, building: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Daily Bed Charge (₹)"
+                type="number"
+                required
+                placeholder="1500"
+                value={newBedForm.ratePerDay}
+                onChange={(e) => setNewBedForm({ ...newBedForm, ratePerDay: Number(e.target.value) })}
+              />
+              <Select
+                label="Initial Condition / State"
+                value={newBedForm.status}
+                onChange={(e) => setNewBedForm({ ...newBedForm, status: e.target.value })}
+                options={[
+                  { value: 'Available', label: 'Available (Sanitized & Ready)' },
+                  { value: 'Cleaning', label: 'Cleaning (Sanitization in progress)' },
+                  { value: 'Maintenance', label: 'Maintenance (Under repair)' },
+                  { value: 'Blocked', label: 'Blocked / Isolated' },
+                  { value: 'Reserved', label: 'Reserved' }
+                ]}
+              />
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setAddBedModalOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                type="submit"
+                isLoading={addingBed}
+                icon={Plus}
+              >
+                Provision Bed
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

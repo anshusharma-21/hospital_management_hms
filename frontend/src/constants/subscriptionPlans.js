@@ -7,8 +7,9 @@ export const SUBSCRIPTION_PLANS = {
   starter: {
     id: 'starter',
     planName: 'Starter (Up to 25 Beds)',
-    displayName: 'Starter Clinic / Nursing Home',
-    onboardingLabel: 'Starter (Up to 25 Beds) — ₹19,000/mo',
+    displayName: 'Basic Plan',
+    subTitle: 'Clinics & Nursing Homes',
+    onboardingLabel: 'Basic Plan (Up to 25 Beds) — ₹19,000/mo',
     price: '₹19,000',
     priceAmount: 19000,
     period: '/ month',
@@ -28,13 +29,14 @@ export const SUBSCRIPTION_PLANS = {
       'Billing & Cashier Module',
       'Pharmacy Point-of-Sale'
     ],
-    badge: 'Clinics'
+    badge: 'Basic'
   },
   professional: {
     id: 'professional',
     planName: 'Professional (Up to 100 Beds)',
-    displayName: 'Professional Multi-Specialty',
-    onboardingLabel: 'Professional (Up to 100 Beds) — ₹49,000/mo',
+    displayName: 'Professional Plan',
+    subTitle: 'Multi-Specialty Hospitals',
+    onboardingLabel: 'Professional Plan (Up to 100 Beds) — ₹49,000/mo',
     price: '₹49,000',
     priceAmount: 49000,
     period: '/ month',
@@ -48,21 +50,22 @@ export const SUBSCRIPTION_PLANS = {
     maxBranches: 3,
     maxUsers: 50,
     features: [
-      'Everything in Starter',
+      'Everything in Basic',
       'Inpatient (IPD) Bed Management',
       'Nursing Station & MAR Charts',
       'Diagnostic Lab & Barcode Station',
       'Radiology Modality Worklist',
       'Operating Theatre Scheduling'
     ],
-    badge: 'Popular',
+    badge: 'Most Popular',
     isPopular: true
   },
   enterprise: {
     id: 'enterprise',
     planName: 'Enterprise (500+ Beds)',
-    displayName: 'Enterprise Hospital Group',
-    onboardingLabel: 'Enterprise (500+ Beds) — ₹99,000/mo',
+    displayName: 'Business Plan',
+    subTitle: 'Hospital Groups & Chains',
+    onboardingLabel: 'Business Plan (500+ Beds) — ₹99,000/mo',
     price: '₹99,000',
     priceAmount: 99000,
     period: '/ month',
@@ -83,7 +86,7 @@ export const SUBSCRIPTION_PLANS = {
       'Fine-Grained RBAC Custom Matrix',
       '24x7 Dedicated SaaS Engineer SLA'
     ],
-    badge: 'Enterprise'
+    badge: 'Business'
   }
 };
 

@@ -60,7 +60,27 @@ exports.createTenant = async (req, res, next) => {
       : '';
 
     const legalName = (req.body.legalName || resolvedName || '').trim();
-    const hospitalType = req.body.hospitalType || 'Multi-Specialty';
+    const rawHospitalType = (req.body.hospitalType || 'Multi-Specialty').trim();
+    const allowedHospitalTypes = [
+      'General Hospital',
+      'Multi-Specialty',
+      'Super-Specialty',
+      'Clinic',
+      'Nursing Home',
+      'Diagnostic Center',
+      'Daycare Surgical',
+      'Daycare Surgery Center',
+      'Day Care Center'
+    ];
+    let hospitalType = allowedHospitalTypes.includes(rawHospitalType) ? rawHospitalType : 'Multi-Specialty';
+    if (!allowedHospitalTypes.includes(rawHospitalType)) {
+      const lower = rawHospitalType.toLowerCase();
+      if (lower.includes('daycare') || lower.includes('surgery')) hospitalType = 'Daycare Surgical';
+      else if (lower.includes('super')) hospitalType = 'Super-Specialty';
+      else if (lower.includes('nursing')) hospitalType = 'Nursing Home';
+      else if (lower.includes('clinic')) hospitalType = 'Clinic';
+      else if (lower.includes('diagnostic')) hospitalType = 'Diagnostic Center';
+    }
     const email = req.body.email || req.body.adminEmail || req.body.adminUser?.email;
     const phone = req.body.phone || req.body.adminPhone || req.body.adminUser?.phone;
     const address = req.body.address || {};
@@ -449,16 +469,40 @@ exports.createBranch = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Tenant not found' });
     }
 
-    // Role check: Main branch users (Org Admins, Main Branch Admins, Main Branch management) can create branches.
-    // Sub-branch users are explicitly forbidden!
+    // Role check: Main branch users can create branches.
+    // Sub-branch users and requests operating under a sub-branch context are explicitly forbidden!
     const isPlatformAdmin = ['super_admin', 'saas_admin'].includes(req.user?.role);
-    const isOrgAdminUser = ['hospital_admin', 'org_admin'].includes(req.user?.role) || isPlatformAdmin;
-    const canCreate = isOrgAdminUser || req.isUserFromMainBranch;
 
-    if (!canCreate) {
+    // 1. Check user's assigned branch in database
+    const userAssignedBranchId = req.user?.branch?._id || req.user?.branch;
+    let userAssignedBranch = null;
+    if (userAssignedBranchId) {
+      userAssignedBranch = await Branch.findById(userAssignedBranchId);
+    }
+    const isUserAssignedToSubBranch = Boolean(
+      userAssignedBranch &&
+      !userAssignedBranch.isMain &&
+      userAssignedBranch.code !== 'MAIN' &&
+      userAssignedBranch.branchType !== 'Main Hospital'
+    );
+
+    // 2. Check active operating branch context from header
+    const clientBranchId = req.headers['x-branch-id'];
+    let activeBranchDoc = null;
+    if (clientBranchId && mongoose.Types.ObjectId.isValid(clientBranchId)) {
+      activeBranchDoc = await Branch.findById(clientBranchId);
+    }
+    const isOperatingInSubBranch = Boolean(
+      activeBranchDoc &&
+      !activeBranchDoc.isMain &&
+      activeBranchDoc.code !== 'MAIN' &&
+      activeBranchDoc.branchType !== 'Main Hospital'
+    );
+
+    if (!isPlatformAdmin && (isUserAssignedToSubBranch || isOperatingInSubBranch)) {
       return res.status(403).json({
         success: false,
-        error: 'Access denied. Only the Main Branch administration can create or configure sub-branches.'
+        error: 'Access denied. Only the Primary Main Branch administration can create or configure sub-branches. Sub-branches cannot create new branches.'
       });
     }
 
@@ -608,6 +652,54 @@ exports.createBranch = async (req, res, next) => {
   }
 };
 
+// @desc    Delete hospital branch
+// @route   DELETE /api/v1/tenants/:id/branches/:branchId
+// @access  Private
+exports.deleteBranch = async (req, res, next) => {
+  try {
+    const tenantId = req.params.id;
+    const branchId = req.params.branchId;
+    const isPlatformAdmin = ['super_admin', 'saas_admin'].includes(req.user?.role);
+
+    // Tenant isolation check
+    const userTenantId = req.user?.tenant?._id ? req.user.tenant._id.toString() : (req.user?.tenant ? req.user.tenant.toString() : (req.tenantId ? req.tenantId.toString() : null));
+    if (!isPlatformAdmin && userTenantId !== tenantId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You do not belong to this hospital organization.'
+      });
+    }
+
+    const branch = await Branch.findOne({ _id: branchId, tenant: tenantId });
+    if (!branch) {
+      return res.status(404).json({ success: false, error: 'Branch location not found' });
+    }
+
+    if (branch.isMain || branch.code === 'MAIN' || branch.branchType === 'Main Hospital') {
+      return res.status(400).json({
+        success: false,
+        error: 'Primary Main Hospital branch cannot be deleted. An organization must have a central operational campus.'
+      });
+    }
+
+    // Safely reassign any users assigned to this branch to the main branch
+    const mainBranch = await Branch.findOne({ tenant: tenantId, $or: [{ isMain: true }, { code: 'MAIN' }] });
+    await User.updateMany(
+      { tenant: tenantId, branch: branchId },
+      { $set: { branch: mainBranch ? mainBranch._id : null } }
+    );
+
+    await Branch.findByIdAndDelete(branchId);
+
+    res.status(200).json({
+      success: true,
+      message: `Branch "${branch.name}" (${branch.code}) deleted successfully`
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get departments
 // @route   GET /api/v1/tenants/:id/departments
 // @access  Private
@@ -646,6 +738,7 @@ exports.getTenantUsers = async (req, res, next) => {
       query.branch = req.branchId;
     }
     const users = await User.find(query)
+      .sort({ createdAt: -1 })
       .select('-password')
       .populate('branch', 'name code')
       .populate('department', 'name code');
@@ -700,6 +793,11 @@ exports.createTenantUser = async (req, res, next) => {
       });
     }
 
+    // Clean up empty branch if passed
+    if (!req.body.branch || req.body.branch === '' || req.body.branch === 'undefined') {
+      delete req.body.branch;
+    }
+
     // Cross-tenant branch assignment check: ensure assigned branch belongs to this tenant
     if (req.body.branch) {
       const branchDoc = await Branch.findById(req.body.branch);
@@ -713,6 +811,18 @@ exports.createTenantUser = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           error: 'Access denied. Assigned branch does not belong to this hospital organization.'
+        });
+      }
+    }
+
+    // Duplicate email check
+    if (req.body.email) {
+      req.body.email = req.body.email.toLowerCase().trim();
+      const existingUser = await User.findOne({ email: req.body.email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: `A user with email "${req.body.email}" is already registered in the system.`
         });
       }
     }
@@ -731,6 +841,175 @@ exports.createTenantUser = async (req, res, next) => {
         branch: user.branch,
         status: user.status
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update staff user
+// @route   PUT /api/v1/tenants/:id/users/:userId
+// @access  Private
+exports.updateTenantUser = async (req, res, next) => {
+  try {
+    const tenantId = req.params.id;
+    const userId = req.params.userId;
+    const isPlatformAdmin = ['super_admin', 'saas_admin'].includes(req.user?.role);
+
+    // Tenant isolation check
+    const userTenantId = req.user?.tenant?._id ? req.user.tenant._id.toString() : (req.user?.tenant ? req.user.tenant.toString() : (req.tenantId ? req.tenantId.toString() : null));
+    if (!isPlatformAdmin && userTenantId !== tenantId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You cannot modify staff for another hospital organization.'
+      });
+    }
+
+    const userToUpdate = await User.findOne({ _id: userId, tenant: tenantId });
+    if (!userToUpdate) {
+      return res.status(404).json({
+        success: false,
+        error: 'Staff user not found in this organization.'
+      });
+    }
+
+    // Branch Admin restrictions
+    if (req.user?.role === 'branch_admin') {
+      const adminBranchId = req.user.branch?._id ? req.user.branch._id.toString() : req.user.branch?.toString();
+      if (userToUpdate.branch && userToUpdate.branch.toString() !== adminBranchId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. You can only manage staff in your assigned branch.'
+        });
+      }
+      if (req.body.role && ['super_admin', 'saas_admin', 'hospital_admin', 'org_admin'].includes(req.body.role)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. Branch Admin cannot assign organization-level administrator roles.'
+        });
+      }
+    }
+
+    // Duplicate email check
+    if (req.body.email && req.body.email.toLowerCase().trim() !== userToUpdate.email) {
+      const newEmail = req.body.email.toLowerCase().trim();
+      const existing = await User.findOne({ email: newEmail, _id: { $ne: userId } });
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          error: `Email "${newEmail}" is already in use by another user.`
+        });
+      }
+      userToUpdate.email = newEmail;
+    }
+
+    // Branch validation
+    if (req.body.branch !== undefined) {
+      if (!req.body.branch || req.body.branch === '' || req.body.branch === 'undefined') {
+        userToUpdate.branch = undefined;
+      } else {
+        const branchDoc = await Branch.findById(req.body.branch);
+        if (!branchDoc || branchDoc.tenant.toString() !== tenantId.toString()) {
+          return res.status(400).json({
+            success: false,
+            error: 'Specified branch does not belong to this hospital organization.'
+          });
+        }
+        userToUpdate.branch = req.body.branch;
+      }
+    }
+
+    if (req.body.name !== undefined) userToUpdate.name = req.body.name.trim();
+    if (req.body.phone !== undefined) userToUpdate.phone = req.body.phone.trim();
+    if (req.body.gender !== undefined) userToUpdate.gender = req.body.gender;
+    if (req.body.role !== undefined) userToUpdate.role = req.body.role;
+    if (req.body.status !== undefined) userToUpdate.status = req.body.status;
+
+    if (req.body.doctorProfile !== undefined) {
+      userToUpdate.doctorProfile = {
+        ...(userToUpdate.doctorProfile?.toObject ? userToUpdate.doctorProfile.toObject() : (userToUpdate.doctorProfile || {})),
+        ...req.body.doctorProfile
+      };
+    }
+
+    if (req.body.password && req.body.password.trim().length >= 6) {
+      userToUpdate.password = req.body.password;
+    }
+
+    await userToUpdate.save();
+
+    const updated = await User.findById(userId)
+      .select('-password')
+      .populate('branch', 'name code')
+      .populate('department', 'name code');
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff user updated successfully',
+      data: updated
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Delete staff user
+// @route   DELETE /api/v1/tenants/:id/users/:userId
+// @access  Private
+exports.deleteTenantUser = async (req, res, next) => {
+  try {
+    const tenantId = req.params.id;
+    const userId = req.params.userId;
+    const isPlatformAdmin = ['super_admin', 'saas_admin'].includes(req.user?.role);
+
+    // Tenant isolation check
+    const userTenantId = req.user?.tenant?._id ? req.user.tenant._id.toString() : (req.user?.tenant ? req.user.tenant.toString() : (req.tenantId ? req.tenantId.toString() : null));
+    if (!isPlatformAdmin && userTenantId !== tenantId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You cannot delete staff for another hospital organization.'
+      });
+    }
+
+    // Prevent self-deletion
+    const currentUserId = req.user?._id ? req.user._id.toString() : req.user?.id?.toString();
+    if (currentUserId === userId.toString()) {
+      return res.status(400).json({
+        success: false,
+        error: 'You cannot delete your own logged-in user account.'
+      });
+    }
+
+    const userToDelete = await User.findOne({ _id: userId, tenant: tenantId });
+    if (!userToDelete) {
+      return res.status(404).json({
+        success: false,
+        error: 'Staff user not found in this organization.'
+      });
+    }
+
+    // Branch Admin restrictions
+    if (req.user?.role === 'branch_admin') {
+      const adminBranchId = req.user.branch?._id ? req.user.branch._id.toString() : req.user.branch?.toString();
+      if (userToDelete.branch && userToDelete.branch.toString() !== adminBranchId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. You can only manage staff in your assigned branch.'
+        });
+      }
+      if (['super_admin', 'saas_admin', 'hospital_admin', 'org_admin'].includes(userToDelete.role)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. Branch Admin cannot delete organization administrators.'
+        });
+      }
+    }
+
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff user removed successfully'
     });
   } catch (err) {
     next(err);

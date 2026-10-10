@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ONBOARDING_PLAN_OPTIONS } from '../../constants/subscriptionPlans';
+import { isValidEmail, isValidPhoneNumber, getPhoneErrorMessage } from '../../utils/validation';
 
 export const TenantOnboarding = () => {
   const { addToast } = useToast();
@@ -68,6 +69,16 @@ export const TenantOnboarding = () => {
       setStep(1);
       return;
     }
+    if (!isValidEmail(formData.email)) {
+      addToast('Please provide a valid official hospital contact email', 'warning');
+      setStep(1);
+      return;
+    }
+    if (!isValidPhoneNumber(formData.phone)) {
+      addToast(getPhoneErrorMessage(formData.phone, 'Hospital phone') || 'Hospital phone must be 10 digits starting with 6, 7, 8, or 9', 'warning');
+      setStep(1);
+      return;
+    }
     if (!formData.branchName?.trim() || !formData.branchCode?.trim()) {
       addToast('Primary branch name and code are required', 'warning');
       setStep(2);
@@ -75,6 +86,14 @@ export const TenantOnboarding = () => {
     }
     if (!formData.adminEmail?.trim() || !formData.adminPassword?.trim()) {
       addToast('Admin login email and temporary password are required', 'warning');
+      return;
+    }
+    if (!isValidEmail(formData.adminEmail)) {
+      addToast('Please provide a valid administrator login email address', 'warning');
+      return;
+    }
+    if (formData.adminPhone && !isValidPhoneNumber(formData.adminPhone)) {
+      addToast(getPhoneErrorMessage(formData.adminPhone, 'Administrator phone') || 'Admin phone must be 10 digits starting with 6, 7, 8, or 9', 'warning');
       return;
     }
 
@@ -205,8 +224,11 @@ export const TenantOnboarding = () => {
                   options={[
                     { value: 'Super-Specialty', label: 'Super-Specialty Hospital' },
                     { value: 'Multi-Specialty', label: 'Multi-Specialty Hospital' },
+                    { value: 'General Hospital', label: 'General Hospital' },
                     { value: 'Nursing Home', label: 'Nursing Home / Secondary Care' },
+                    { value: 'Clinic', label: 'Specialty Clinic' },
                     { value: 'Daycare Surgical', label: 'Daycare Surgery Center' },
+                    { value: 'Diagnostic Center', label: 'Diagnostic Center' },
                   ]}
                 />
               </div>
@@ -226,9 +248,10 @@ export const TenantOnboarding = () => {
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Phone Number</label>
                 <Input 
+                  isPhone={true}
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="+91 22 4500 1000"
+                  placeholder="10-digit mobile (e.g. 9820011000)"
                   required
                 />
               </div>

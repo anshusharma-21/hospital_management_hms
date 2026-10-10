@@ -329,6 +329,21 @@ exports.createPrescription = async (req, res, next) => {
     const rxSeq = String(count + 1).padStart(4, '0');
     const prescriptionNumber = `RX-${new Date().getFullYear()}-${rxSeq}`;
 
+    const sanitizedMedications = Array.isArray(medications)
+      ? medications
+          .filter((m) => m && (m.medicineName?.trim() || m.dosage?.trim()))
+          .map((m) => ({
+            ...m,
+            medicineName: m.medicineName?.trim() || 'Medication',
+            dosage: m.dosage?.trim() || '1 Tab',
+            form: m.form || 'Tablet',
+            route: m.route || 'Oral',
+            frequency: m.frequency || 'Twice daily (BD)',
+            duration: m.duration?.trim() || '5 Days',
+            instructions: m.instructions?.trim() || 'After Food'
+          }))
+      : [];
+
     const prescription = await Prescription.create({
       tenant: req.tenantId,
       branch: req.branchId || req.user.branch,
@@ -337,7 +352,7 @@ exports.createPrescription = async (req, res, next) => {
       doctor: req.user._id,
       prescriptionNumber,
       diagnosis,
-      medications: medications || [],
+      medications: sanitizedMedications,
       dietAdvice,
       generalAdvice,
       isFinalized: true,
@@ -390,7 +405,9 @@ exports.getEncounters = async (req, res, next) => {
       query.patient = patientId;
     }
 
-    if (doctorId) {
+    if (req.user?.role === 'doctor') {
+      query.doctor = req.user._id;
+    } else if (doctorId) {
       query.doctor = doctorId;
     }
 
@@ -432,7 +449,9 @@ exports.getPrescriptions = async (req, res, next) => {
       query.patient = patientId;
     }
 
-    if (doctorId) {
+    if (req.user?.role === 'doctor') {
+      query.doctor = req.user._id;
+    } else if (doctorId) {
       query.doctor = doctorId;
     }
 

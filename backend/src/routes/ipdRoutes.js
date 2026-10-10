@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getBeds,
+  createBed,
   updateBedStatus,
   getAdmissions,
   getAdmissionById,
@@ -23,7 +24,9 @@ router.use(protect);
 router.use(enforceTenant);
 
 // Beds
-router.get('/beds', getBeds);
+router.route('/beds')
+  .get(getBeds)
+  .post(createBed);
 router.put('/beds/:id/status', updateBedStatus);
 
 // Admissions

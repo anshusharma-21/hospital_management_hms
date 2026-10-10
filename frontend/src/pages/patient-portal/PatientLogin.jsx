@@ -7,11 +7,14 @@ import {
   ArrowRight,
   AlertCircle,
   HeartPulse,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { HospitalVisionLogo } from '../../components/common/HospitalVisionLogo';
+import { sanitizePhoneInput, isValidPhoneNumber, getPhoneErrorMessage } from '../../utils/validation';
 
 export const PatientLogin = () => {
   const { patientLogin } = useAuth();
@@ -20,6 +23,7 @@ export const PatientLogin = () => {
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,6 +31,10 @@ export const PatientLogin = () => {
     e?.preventDefault();
     if (!phone.trim()) {
       setError('Please enter your registered mobile number');
+      return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      setError(getPhoneErrorMessage(phone) || 'Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9');
       return;
     }
     const enteredOtp = otp.trim() || (import.meta.env.DEV ? '1234' : '');
@@ -57,60 +65,55 @@ export const PatientLogin = () => {
   };
 
   return (
-    <div className="min-h-screen w-full medical-light-canvas relative flex flex-col justify-between items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 overflow-hidden font-sans antialiased text-slate-800 select-none">
-      {/* Radiant Healthcare Environment Background Layers */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Ambient Soft Cyan & Indigo Lighting Glows */}
-        <div className="absolute -top-36 right-1/3 w-[700px] h-[450px] bg-cyan-400/15 rounded-full blur-[140px]" />
-        <div className="absolute top-1/2 -right-28 w-[550px] h-[500px] bg-teal-400/15 rounded-full blur-[150px]" />
-        <div className="absolute -bottom-32 left-1/4 w-[650px] h-[450px] bg-sky-400/12 rounded-full blur-[140px]" />
-
-        {/* Faint Medical Dot Matrix Texture */}
-        <div className="absolute inset-0 medical-dot-grid opacity-60" />
-
-        {/* Concentric Telemetry Rings */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[850px] rounded-full border border-teal-600/5 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] rounded-full border border-cyan-600/5 pointer-events-none" />
-
-        {/* Ambient EKG Waveform */}
-        <div className="absolute top-20 inset-x-0 h-24 opacity-[0.07] overflow-hidden">
-          <svg className="w-full h-full" viewBox="0 0 1200 100" preserveAspectRatio="none">
-            <path
-              d="M0,50 L200,50 L220,15 L235,85 L250,20 L265,65 L280,50 L650,50 L670,10 L685,90 L700,25 L715,70 L730,50 L1200,50"
-              fill="none"
-              stroke="#0284c7"
-              strokeWidth="2.5"
-            />
-          </svg>
-        </div>
+    <div className="min-h-screen w-full bg-slate-50 relative flex flex-col justify-between items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 overflow-hidden font-sans antialiased text-slate-800 select-none">
+      
+      {/* ─────────────────────────────────────────────────────────────
+          EXACT LANDING-PAGE AMBIENT BACKGROUND & MEDICAL GLOWS
+      ───────────────────────────────────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden bg-gradient-to-b from-sky-50/40 via-white to-slate-50/40">
+        {/* Soft Luminous Medical Glows (Exact match to Landing Page Hero) */}
+        <div className="absolute -top-24 -left-20 w-[650px] h-[500px] bg-gradient-to-br from-teal-100/35 via-cyan-50/25 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-10 right-0 w-[550px] h-[500px] bg-gradient-to-bl from-sky-100/35 via-teal-50/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-teal-50/20 via-sky-50/25 to-transparent rounded-full blur-3xl opacity-70" />
+        <div className="absolute inset-0 medical-dot-grid opacity-20" />
       </div>
 
-      {/* Top Header Branding Bar */}
+      {/* ─────────────────────────────────────────────────────────────
+          TOP HEADER BRANDING BAR
+      ───────────────────────────────────────────────────────────── */}
       <header className="relative z-10 w-full max-w-5xl flex items-center justify-between py-2">
-        <HospitalVisionLogo
-          size="md"
-          variant="light"
-          badge="Patient Care"
-        />
-
-        <Link
-          to="/signin"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 hover:bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-2xs backdrop-blur-sm"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 text-teal-600" />
-          <span>Staff Portal</span>
+        <Link to="/" className="inline-flex items-center gap-2.5 group">
+          <HospitalVisionLogo
+            size="md"
+            variant="light"
+            badge="Patient Care"
+          />
         </Link>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/signin"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 hover:bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-2xs backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-teal-600" />
+            <span>Staff Portal</span>
+          </Link>
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all shadow-2xs"
+          >
+            <span>Platform Overview</span>
+          </Link>
+        </div>
       </header>
 
-      {/* Central Integrated Authentication Focal Unit */}
+      {/* ─────────────────────────────────────────────────────────────
+          CENTRAL NORMAL AUTHENTICATION CARD (CLEAN & CENTERED AS BEFORE)
+      ───────────────────────────────────────────────────────────── */}
       <main className="relative z-10 w-full max-w-md my-auto py-6">
-        {/* Main Elevated Pure White Medical Card */}
         <div
-          className="relative rounded-3xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-8 sm:p-9 transition-all duration-300"
-          style={{
-            boxShadow:
-              '0 20px 50px -12px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1)'
-          }}
+          className="relative rounded-3xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-8 sm:p-9 transition-all duration-300 shadow-xl shadow-teal-900/5"
         >
           {/* Top Medical Accent Line */}
           <div className="absolute top-0 inset-x-8 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-cyan-500 rounded-b-full" />
@@ -153,14 +156,17 @@ export const PatientLogin = () => {
                   id="patient-phone"
                   type="tel"
                   required
+                  maxLength={10}
+                  inputMode="numeric"
                   placeholder="e.g. 9876543210"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
                   className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-sans font-medium"
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                Enter the mobile number provided during hospital registration
+              <p className="text-[10px] text-slate-400 mt-1 font-medium flex items-center justify-between">
+                <span>Enter 10-digit registered mobile number</span>
+                <span className="font-mono text-teal-700 font-bold">{phone.length}/10</span>
               </p>
             </div>
 
@@ -184,13 +190,21 @@ export const PatientLogin = () => {
                 </div>
                 <input
                   id="patient-otp"
-                  type="password"
+                  type={showOtp ? 'text' : 'password'}
                   maxLength={6}
                   placeholder="Enter 4-digit code"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-mono tracking-widest font-semibold"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-mono tracking-widest font-semibold"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowOtp(!showOtp)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                  title={showOtp ? 'Hide code' : 'Show code'}
+                >
+                  {showOtp ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -218,7 +232,9 @@ export const PatientLogin = () => {
         </div>
       </main>
 
-      {/* Footer Strip */}
+      {/* ─────────────────────────────────────────────────────────────
+          FOOTER STRIP
+      ───────────────────────────────────────────────────────────── */}
       <footer className="relative z-10 w-full max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 py-2 border-t border-slate-200/80">
         <div className="flex items-center gap-4">
           <span className="text-slate-700 font-semibold">Hospital Vision Patient Care</span>

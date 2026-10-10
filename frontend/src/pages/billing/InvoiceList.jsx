@@ -147,8 +147,23 @@ export const InvoiceList = () => {
       inv.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.patient?.uhid?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (statusFilter === 'ALL') return matchesSearch;
-    return matchesSearch && inv.status === statusFilter.toLowerCase();
+    if (!matchesSearch) return false;
+    if (statusFilter === 'ALL') return true;
+
+    const due = inv.balanceDue !== undefined ? inv.balanceDue : (inv.balanceAmount || 0);
+    const paid = inv.paidAmount || 0;
+    const statusLower = (inv.status || '').toLowerCase();
+
+    if (statusFilter === 'UNPAID') {
+      return statusLower === 'finalized' || statusLower === 'draft' || statusLower === 'unpaid' || (due > 0 && paid === 0);
+    }
+    if (statusFilter === 'PARTIAL') {
+      return statusLower === 'partially paid' || statusLower === 'partial' || (paid > 0 && due > 0);
+    }
+    if (statusFilter === 'PAID') {
+      return statusLower === 'fully paid' || statusLower === 'paid' || (due === 0 && (paid > 0 || statusLower !== 'cancelled'));
+    }
+    return true;
   });
 
   return (
@@ -238,7 +253,7 @@ export const InvoiceList = () => {
                 <TableCell className="font-mono font-semibold text-xs text-emerald-700">₹{inv.paidAmount?.toLocaleString()}</TableCell>
                 <TableCell className="font-mono font-bold text-xs text-rose-700">₹{inv.balanceAmount?.toLocaleString()}</TableCell>
                 <TableCell>
-                  <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'partial' ? 'warning' : 'danger'}>
+                  <Badge variant={inv.status === 'Fully Paid' || inv.status === 'paid' ? 'success' : inv.status === 'Partially Paid' || inv.status === 'partial' ? 'warning' : 'neutral'}>
                     {inv.status?.toUpperCase()}
                   </Badge>
                 </TableCell>

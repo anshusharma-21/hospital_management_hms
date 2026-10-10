@@ -55,8 +55,14 @@ export const PaymentCollection = () => {
           const matched = res.data.data.find(i => i._id === targetInvoiceId);
           if (matched) selectInvoiceForPayment(matched);
         } else if (res.data.data.length > 0) {
-          const firstUnpaid = res.data.data.find(i => (i.balanceDue !== undefined ? i.balanceDue : (i.balanceAmount || 0)) > 0) || res.data.data[0];
-          selectInvoiceForPayment(firstUnpaid);
+          const unpaidList = res.data.data.filter(i => (i.balanceDue !== undefined ? i.balanceDue : (i.balanceAmount || 0)) > 0);
+          if (unpaidList.length > 0) {
+            selectInvoiceForPayment(unpaidList[0]);
+          } else {
+            setSelectedInvoice(null);
+          }
+        } else {
+          setSelectedInvoice(null);
         }
       }
     } catch (err) {
@@ -151,33 +157,42 @@ export const PaymentCollection = () => {
             </div>
 
             <div className="divide-y divide-slate-100 max-h-[580px] overflow-y-auto">
-              {invoices.map((inv) => {
-                const isSelected = selectedInvoice?._id === inv._id;
-                const invDue = inv.balanceDue !== undefined ? inv.balanceDue : (inv.balanceAmount || 0);
-                const invTotal = inv.grandTotal !== undefined ? inv.grandTotal : (inv.netAmount || 0);
-                return (
-                  <div
-                    key={inv._id}
-                    onClick={() => selectInvoiceForPayment(inv)}
-                    className={`p-3.5 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-teal-50/90 border-l-4 border-teal-600' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-mono font-bold text-teal-700 text-xs">{inv.invoiceNumber}</span>
-                      <span className="font-mono font-bold text-xs text-rose-700">Due: ₹{invDue}</span>
+              {invoices
+                .filter(i => (i.balanceDue !== undefined ? i.balanceDue : (i.balanceAmount || 0)) > 0)
+                .map((inv) => {
+                  const isSelected = selectedInvoice?._id === inv._id;
+                  const invDue = inv.balanceDue !== undefined ? inv.balanceDue : (inv.balanceAmount || 0);
+                  const invTotal = inv.grandTotal !== undefined ? inv.grandTotal : (inv.netAmount || 0);
+                  return (
+                    <div
+                      key={inv._id}
+                      onClick={() => selectInvoiceForPayment(inv)}
+                      className={`p-3.5 cursor-pointer transition-colors ${
+                        isSelected ? 'bg-teal-50/90 border-l-4 border-teal-600' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-mono font-bold text-teal-700 text-xs">{inv.invoiceNumber}</span>
+                        <span className="font-mono font-bold text-xs text-rose-700">Due: ₹{invDue}</span>
+                      </div>
+                      <p className="font-bold text-slate-900 text-xs">{inv.patient?.fullName}</p>
+                      <p className="font-mono text-[10px] text-slate-400">{inv.patient?.uhid}</p>
+                      <div className="flex justify-between items-center mt-2 text-[11px] text-slate-500">
+                        <span>Total: ₹{invTotal}</span>
+                        <Badge variant={inv.status === 'paid' || inv.status === 'Fully Paid' ? 'success' : inv.status === 'partial' || inv.status === 'Partially Paid' ? 'warning' : 'danger'}>
+                          {inv.status}
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="font-bold text-slate-900 text-xs">{inv.patient?.fullName}</p>
-                    <p className="font-mono text-[10px] text-slate-400">{inv.patient?.uhid}</p>
-                    <div className="flex justify-between items-center mt-2 text-[11px] text-slate-500">
-                      <span>Total: ₹{invTotal}</span>
-                      <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'partial' ? 'warning' : 'danger'}>
-                        {inv.status}
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              {invoices.filter(i => (i.balanceDue !== undefined ? i.balanceDue : (i.balanceAmount || 0)) > 0).length === 0 && (
+                <div className="p-8 text-center text-xs text-slate-500">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">All Invoices Cleared</p>
+                  <p className="text-[11px] text-slate-400 mt-1">No pending or outstanding balances found.</p>
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -121,11 +121,11 @@ export const ConsultationEncounter = () => {
       ...medications,
       {
         medicineName: '',
-        dosage: '',
+        dosage: '1 Tab',
         form: 'Tablet',
-        frequency: '',
-        duration: '',
-        instructions: ''
+        frequency: 'Twice daily (BD)',
+        duration: '5 Days',
+        instructions: 'After Food'
       }
     ]);
   };
@@ -174,13 +174,25 @@ export const ConsultationEncounter = () => {
         ...vitals
       });
 
-      // 3. Create e-Prescription
-      if (medications.length > 0) {
+      // 3. Create e-Prescription (filter empty rows & ensure safe clinical defaults)
+      const validMedications = medications
+        .filter((m) => m && (m.medicineName?.trim() || m.dosage?.trim()))
+        .map((m) => ({
+          ...m,
+          medicineName: m.medicineName?.trim() || 'Prescribed Medicine',
+          dosage: m.dosage?.trim() || '1 Tab',
+          form: m.form || 'Tablet',
+          frequency: m.frequency || 'Twice daily (BD)',
+          duration: m.duration?.trim() || '5 Days',
+          instructions: m.instructions?.trim() || 'After Food'
+        }));
+
+      if (validMedications.length > 0) {
         await api.post('/clinical/prescriptions', {
           patient: patient._id,
           encounter: encounter._id,
           diagnosis: diagnosis || 'Clinical evaluation & symptom management',
-          medications,
+          medications: validMedications,
           generalAdvice: 'Adequate hydration, warm oral fluids, take medicines on time.'
         });
       }

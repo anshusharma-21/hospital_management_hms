@@ -8,10 +8,13 @@ const {
   deleteTenant,
   getBranches,
   createBranch,
+  deleteBranch,
   getDepartments,
   createDepartment,
   getTenantUsers,
   createTenantUser,
+  updateTenantUser,
+  deleteTenantUser,
   previewBulkImport,
   commitBulkImport,
   initiateTenantOffboarding,
@@ -52,6 +55,9 @@ router.route('/:id/branches')
   .get(getBranches)
   .post(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin'), createBranch);
 
+router.route('/:id/branches/:branchId')
+  .delete(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin'), deleteBranch);
+
 router.route('/:id/departments')
   .get(getDepartments)
   .post(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin'), createDepartment);
@@ -59,6 +65,10 @@ router.route('/:id/departments')
 router.route('/:id/users')
   .get(getTenantUsers)
   .post(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin', 'branch_admin'), createTenantUser);
+
+router.route('/:id/users/:userId')
+  .put(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin', 'branch_admin'), updateTenantUser)
+  .delete(authorize('super_admin', 'saas_admin', 'hospital_admin', 'org_admin', 'branch_admin'), deleteTenantUser);
 
 module.exports = router;
 

@@ -16,7 +16,17 @@ const tenantSchema = new mongoose.Schema({
   legalName: { type: String, trim: true },
   hospitalType: {
     type: String,
-    enum: ['General Hospital', 'Multi-Specialty', 'Super-Specialty', 'Clinic', 'Nursing Home', 'Diagnostic Center'],
+    enum: [
+      'General Hospital',
+      'Multi-Specialty',
+      'Super-Specialty',
+      'Clinic',
+      'Nursing Home',
+      'Diagnostic Center',
+      'Daycare Surgical',
+      'Daycare Surgery Center',
+      'Day Care Center'
+    ],
     default: 'Multi-Specialty'
   },
   email: { type: String, trim: true },

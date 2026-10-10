@@ -4,9 +4,21 @@ import api from '../services/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('hv_token') || null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('hv_user');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('hv_token') || null);
+  const [loading, setLoading] = useState(() => {
+    return !localStorage.getItem('hv_token') || !localStorage.getItem('hv_user');
+  });
   const [availableBranches, setAvailableBranches] = useState([]);
   const [activeBranch, setActiveBranch] = useState(() => {
     const saved = localStorage.getItem('hv_active_branch');
@@ -116,26 +128,37 @@ export const AuthProvider = ({ children }) => {
       const storedUser = localStorage.getItem('hv_user');
 
       if (storedToken && storedUser) {
+        let loadedUser = null;
         try {
-          let loadedUser = JSON.parse(storedUser);
+          loadedUser = JSON.parse(storedUser);
           setUser(loadedUser);
           setToken(storedToken);
+          // Set loading false immediately so the page does NOT flash redirect or kick user
+          setLoading(false);
           await loadTenantBranches(loadedUser);
+        } catch (err) {
+          console.error('Session restore parse error:', err);
+          setLoading(false);
+        }
 
-          // Refresh user context from server
+        // Non-blocking server verification in background
+        try {
           const res = await api.get('/auth/me');
-          if (res.data.success && res.data.user) {
-            loadedUser = res.data.user;
-            setUser(loadedUser);
-            localStorage.setItem('hv_user', JSON.stringify(loadedUser));
-            await loadTenantBranches(loadedUser);
+          if (res.data?.success && res.data.user) {
+            const freshUser = res.data.user;
+            setUser(freshUser);
+            localStorage.setItem('hv_user', JSON.stringify(freshUser));
           }
         } catch (err) {
-          console.error('Session restore failed:', err);
-          logout();
+          console.warn('[Session Verify]:', err.message);
+          // ONLY log out if server definitively returned 401 Unauthorized
+          if (err.response?.status === 401) {
+            logout();
+          }
         }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();
@@ -233,6 +256,14 @@ export const AuthProvider = ({ children }) => {
     console.warn('Direct persona switching with mock credentials has been removed. Please authenticate with actual user credentials.');
   };
 
+  const updateUser = (updatedUserData) => {
+    setUser(prev => {
+      const merged = { ...prev, ...updatedUserData };
+      localStorage.setItem('hv_user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -250,7 +281,8 @@ export const AuthProvider = ({ children }) => {
         login,
         patientLogin,
         logout,
-        switchRole
+        switchRole,
+        updateUser
       }}
     >
       {children}

@@ -18,16 +18,17 @@ import {
 } from 'lucide-react';
 
 export const LiveQueueBoard = () => {
-  const { activeBranch } = useAuth();
+  const { user, activeBranch } = useAuth();
   const [queue, setQueue] = useState({ waiting: [], inConsultation: [], completed: [] });
   const [loading, setLoading] = useState(true);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const { addToast } = useToast();
   const navigate = useNavigate();
 
   const fetchQueue = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/appointments/queue');
+      const res = await api.get(`/appointments/queue?date=${date}`);
       if (res.data.success) {
         setQueue(res.data.data);
       }
@@ -42,7 +43,7 @@ export const LiveQueueBoard = () => {
     fetchQueue();
     const interval = setInterval(fetchQueue, 15000); // Live poll every 15s
     return () => clearInterval(interval);
-  }, [activeBranch]);
+  }, [date, activeBranch]);
 
   const handleCallPatient = (appt) => {
     addToast({
@@ -72,16 +73,24 @@ export const LiveQueueBoard = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+          />
           <Button variant="outline" size="sm" icon={RefreshCcw} onClick={fetchQueue}>
-            Refresh Queue
+            Refresh
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => navigate('/appointments/book')}
-          >
-            + Add Walk-In Patient
-          </Button>
+          {user?.role !== 'doctor' && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/appointments/book')}
+            >
+              + Add Walk-In Patient
+            </Button>
+          )}
         </div>
       </div>
 
