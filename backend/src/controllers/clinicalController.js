@@ -6,6 +6,8 @@ const AuditLog = require('../models/AuditLog');
 const Invoice = require('../models/Invoice');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
+const { validateVitalSigns } = require('../utils/clinicalValidators');
+const { checkDrugAllergyConflicts } = require('../utils/drugAllergyChecker');
 
 // @desc    Get or create encounter
 // @route   POST /api/v1/clinical/encounters
@@ -246,9 +248,21 @@ exports.recordVitals = async (req, res, next) => {
       height,
       weight,
       bloodSugarRandom,
+      bloodSugarFasting,
       painScore,
       remarks
     } = req.body;
+
+    // Validate physiological bounds
+    const validation = validateVitalSigns(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Physiological vital sign validation failure',
+        errors: validation.errors,
+        warnings: validation.warnings
+      });
+    }
 
     const vital = await Vital.create({
       tenant: req.tenantId,
@@ -344,6 +358,37 @@ exports.createPrescription = async (req, res, next) => {
           }))
       : [];
 
+    // Clinical Drug-Allergy Safety Check
+    const patientDoc = await Patient.findOne({ _id: patient, tenant: req.tenantId });
+    if (patientDoc && patientDoc.allergies && patientDoc.allergies.length > 0) {
+      const allergyCheck = checkDrugAllergyConflicts(sanitizedMedications, patientDoc.allergies);
+      if (allergyCheck.hasConflict) {
+        const { allergyOverrideAcknowledged, allergyOverrideReason } = req.body;
+        if (!allergyOverrideAcknowledged) {
+          return res.status(400).json({
+            success: false,
+            allergyConflict: true,
+            error: 'Critical Clinical Safety Alert: Prescribed drug conflicts with documented patient allergy',
+            conflicts: allergyCheck.conflicts
+          });
+        }
+
+        // Audit clinical safety override
+        await AuditLog.create({
+          tenant: req.tenantId,
+          branch: req.branchId || req.user.branch,
+          user: req.user._id,
+          userName: req.user.name,
+          userRole: req.user.role,
+          action: 'Clinical Safety Override',
+          module: 'Clinical / EMR',
+          entityId: patientDoc._id.toString(),
+          entityType: 'Patient',
+          details: `Clinician Dr. ${req.user.name} overrode drug-allergy alert for ${patientDoc.fullName}. Reason: ${allergyOverrideReason || 'Confirmed by prescribing physician'}. Conflicts: ${allergyCheck.conflicts.map(c => `${c.medicineName} vs ${c.allergen}`).join(', ')}`
+        });
+      }
+    }
+
     const prescription = await Prescription.create({
       tenant: req.tenantId,
       branch: req.branchId || req.user.branch,
@@ -381,6 +426,33 @@ exports.createPrescription = async (req, res, next) => {
       success: true,
       message: 'Prescription finalized and signed',
       data: populated
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Pre-flight drug allergy conflict check
+// @route   POST /api/v1/clinical/check-allergy
+// @access  Private
+exports.checkDrugAllergies = async (req, res, next) => {
+  try {
+    const { patientId, medications } = req.body;
+    if (!patientId || !medications) {
+      return res.status(400).json({ success: false, error: 'Please provide patientId and medications' });
+    }
+
+    const patient = await Patient.findOne({ _id: patientId, tenant: req.tenantId });
+    if (!patient) {
+      return res.status(404).json({ success: false, error: 'Patient not found' });
+    }
+
+    const result = checkDrugAllergyConflicts(medications, patient.allergies || []);
+    res.status(200).json({
+      success: true,
+      patientAllergies: patient.allergies || [],
+      hasConflict: result.hasConflict,
+      conflicts: result.conflicts
     });
   } catch (err) {
     next(err);

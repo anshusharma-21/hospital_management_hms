@@ -292,8 +292,9 @@ export const SignIn = () => {
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] text-slate-300 font-medium">Enterprise Cloud Node Active</span>
           </div>
-          <span className="text-[11px] font-mono text-teal-400 font-bold">HIPAA &amp; ABDM Ready</span>
+          <span className="text-[11px] font-mono text-teal-400 font-bold">Tenant-Isolated Architecture</span>
         </div>
+
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -466,15 +467,16 @@ export const SignIn = () => {
 
         {/* Bottom Compliance Strip */}
         <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 relative z-10 font-medium">
-          <div>Hospital Vision Cloud OS • Production Release</div>
+          <div>Hospital Vision Cloud OS • Enterprise Release</div>
           <div className="flex items-center gap-3 text-slate-600">
-            <span>HIPAA Compliant</span>
+            <span>Healthcare Data Privacy Architecture</span>
             <span>•</span>
-            <span>NABH / ABDM Ready</span>
+            <span>AES Encrypted</span>
             <span>•</span>
-            <span>ISO 27001</span>
+            <span>Multi-Tenant Isolated</span>
           </div>
         </div>
+
       </div>
 
       {/* Forgot Password Modal */}

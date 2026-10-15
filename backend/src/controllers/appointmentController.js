@@ -87,6 +87,24 @@ exports.createAppointment = async (req, res, next) => {
     const endOfDay = new Date(apptDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // 1. Past Consultation Date Validation (Must be today or future date)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (startOfDay < todayStart) {
+      return res.status(400).json({
+        success: false,
+        error: 'Consultation date cannot be in the past'
+      });
+    }
+
+    // 2. Negative Consultation Fee Validation
+    if (consultationFee !== undefined && Number(consultationFee) < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Consultation fee cannot be negative'
+      });
+    }
+
     // Resolve doctor User document
     let doctorId = doctor;
     let doctorUser = null;
@@ -113,13 +131,32 @@ exports.createAppointment = async (req, res, next) => {
       });
     }
 
-    // Calculate sequential token number for this doctor on this day
-    const existingCount = await Appointment.countDocuments({
+    // 3. Double-Booking & Slot Conflict Prevention
+    const targetSlot = slotTime || '10:00 AM';
+    const existingSlotBooking = await Appointment.findOne({
+      tenant: req.tenantId,
+      doctor: doctorId,
+      appointmentDate: { $gte: startOfDay, $lte: endOfDay },
+      slotTime: targetSlot,
+      status: { $nin: ['Cancelled', 'No Show', 'No-Show'] }
+    });
+
+    if (existingSlotBooking) {
+      return res.status(409).json({
+        success: false,
+        isSlotConflict: true,
+        error: `Clinician is already booked for ${targetSlot} on ${apptDate.toLocaleDateString()}. Please select another slot to avoid double-booking.`
+      });
+    }
+
+    // 4. Guaranteed Unique Sequential Token Allocation
+    const highestTokenAppointment = await Appointment.findOne({
       tenant: req.tenantId,
       doctor: doctorId,
       appointmentDate: { $gte: startOfDay, $lte: endOfDay }
-    });
-    const tokenNumber = existingCount + 1;
+    }).sort({ tokenNumber: -1 });
+
+    const tokenNumber = (highestTokenAppointment?.tokenNumber || 0) + 1;
 
     let effectivePatient = patient;
     if (req.user?.role === 'patient') {

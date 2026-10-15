@@ -169,11 +169,16 @@ describe('Hospital Vision Patient Portal — Security & API Contracts Test Suite
 
   describe('1. Patient Authentication & Dedicated Profile Scoping', () => {
     it('should authenticate patient via phone and OTP with signed JWT', async () => {
+      const sendRes = mockRes();
+      await authController.sendPatientOTP({ body: { phone: patient1.phone } }, sendRes, () => {});
+      const otpCode = sendRes.data?.devCode || '1234';
+
       const req = {
-        body: { phone: patient1.phone, otp: '1234' }
+        body: { phone: patient1.phone, otp: otpCode }
       };
       const res = mockRes();
       await authController.patientLogin(req, res, () => {});
+
 
       assert.strictEqual(res.statusCode, 200);
       assert.strictEqual(res.data.success, true);

@@ -15,6 +15,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { HospitalVisionLogo } from '../../components/common/HospitalVisionLogo';
 import { sanitizePhoneInput, isValidPhoneNumber, getPhoneErrorMessage } from '../../utils/validation';
+import api from '../../services/api';
+
 
 export const PatientLogin = () => {
   const { patientLogin } = useAuth();
@@ -25,7 +27,49 @@ export const PatientLogin = () => {
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const handleSendOtp = async () => {
+    if (!phone.trim()) {
+      setError('Please enter your registered mobile number');
+      return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      setError(getPhoneErrorMessage(phone) || 'Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9');
+      return;
+    }
+    setError('');
+    setSendingOtp(true);
+    try {
+      const res = await api.post('/auth/send-patient-otp', { phone: phone.trim() });
+      if (res.data?.success) {
+        setOtpSent(true);
+        setCountdown(45);
+        addToast({
+          title: 'OTP Generated',
+          message: res.data.message || 'OTP verification code generated.',
+          type: 'success'
+        });
+        if (res.data.devCode) {
+          setOtp(res.data.devCode);
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to generate OTP. Please verify your mobile number.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
@@ -37,9 +81,9 @@ export const PatientLogin = () => {
       setError(getPhoneErrorMessage(phone) || 'Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9');
       return;
     }
-    const enteredOtp = otp.trim() || (import.meta.env.DEV ? '1234' : '');
+    const enteredOtp = otp.trim();
     if (!enteredOtp) {
-      setError('Please enter your OTP verification code');
+      setError('Please enter your 6-digit OTP verification code');
       return;
     }
     setError('');
@@ -55,14 +99,15 @@ export const PatientLogin = () => {
         });
         navigate('/patient-portal/dashboard');
       } else {
-        setError(res.error || 'Authentication failed. Please verify your mobile number.');
+        setError(res.error || 'Authentication failed. Please verify your mobile number and OTP.');
       }
     } catch (err) {
-      setError('Unable to authenticate at this time. Please try again.');
+      setError(err.response?.data?.error || 'Unable to authenticate at this time. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen w-full bg-slate-50 relative flex flex-col justify-between items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 overflow-hidden font-sans antialiased text-slate-800 select-none">
@@ -142,12 +187,22 @@ export const PatientLogin = () => {
           {/* Patient Authentication Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="patient-phone"
-                className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-              >
-                Registered Mobile Number
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="patient-phone"
+                  className="block text-[11px] font-bold uppercase tracking-wider text-slate-700"
+                >
+                  Registered Mobile Number
+                </label>
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={sendingOtp || countdown > 0 || phone.length !== 10}
+                  className="text-[11px] font-semibold text-teal-700 hover:text-teal-900 disabled:text-slate-400 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  {sendingOtp ? 'Generating...' : countdown > 0 ? `Resend in ${countdown}s` : otpSent ? 'Resend OTP' : 'Send OTP'}
+                </button>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Phone className="w-4 h-4" />
@@ -178,9 +233,9 @@ export const PatientLogin = () => {
                 >
                   OTP Verification Code
                 </label>
-                {import.meta.env.DEV && (
+                {otpSent && (
                   <span className="text-[10px] font-mono text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200/60 font-semibold">
-                    Default OTP: 1234
+                    Code sent (Valid 5 mins)
                   </span>
                 )}
               </div>
@@ -192,7 +247,7 @@ export const PatientLogin = () => {
                   id="patient-otp"
                   type={showOtp ? 'text' : 'password'}
                   maxLength={6}
-                  placeholder="Enter 4-digit code"
+                  placeholder="Enter 6-digit code"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all font-mono tracking-widest font-semibold"
@@ -207,6 +262,7 @@ export const PatientLogin = () => {
                 </button>
               </div>
             </div>
+
 
             {/* Action Button */}
             <button

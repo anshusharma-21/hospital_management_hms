@@ -42,6 +42,16 @@ const seedDatabase = async () => {
       status: 'active'
     });
 
+    const ajaySuperAdmin = await User.create({
+      name: 'Ajay (Platform Director)',
+      email: 'ajay@gmail.com',
+      phone: '+91 99000 11001',
+      password: 'ajay321',
+      role: 'super_admin',
+      status: 'active'
+    });
+
+
     // 2. Create Primary Hospital Tenant
     const tenant = await Tenant.create({
       name: 'Lifeline Super-Specialty Hospital',

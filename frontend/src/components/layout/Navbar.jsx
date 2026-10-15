@@ -113,7 +113,7 @@ export const Navbar = ({ onOpenSearch, onToggleMobileSidebar }) => {
                   {(activeBranch || branch)?.code && (
                     <span className="text-[10px] text-slate-400 font-mono truncate">
                       {(activeBranch || branch).code}
-                      {(activeBranch || branch).bedCapacity ? ` · ${(activeBranch || branch).bedCapacity} beds` : ''}
+                      {(activeBranch || branch).bedCapacity ? ` · ${(activeBranch || branch).bedCapacity} licensed beds` : ''}
                       {((activeBranch || branch).isMain || (activeBranch || branch).branchType === 'Main Hospital') ? ' (Main)' : ''}
                     </span>
                   )}
@@ -135,9 +135,10 @@ export const Navbar = ({ onOpenSearch, onToggleMobileSidebar }) => {
                   {(activeBranch || branch)?.code && (
                     <span className="text-[10px] text-slate-400 font-mono truncate">
                       {(activeBranch || branch).code}
-                      {(activeBranch || branch).bedCapacity ? ` · ${(activeBranch || branch).bedCapacity} beds` : ''}
+                      {(activeBranch || branch).bedCapacity ? ` · ${(activeBranch || branch).bedCapacity} licensed beds` : ''}
                     </span>
                   )}
+
                 </div>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200/70">
                   Assigned

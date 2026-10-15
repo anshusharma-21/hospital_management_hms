@@ -123,6 +123,29 @@ export const AppointmentBooking = () => {
       return;
     }
 
+    if (formData.appointmentDate) {
+      const apptDate = new Date(formData.appointmentDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (apptDate < today) {
+        addToast({
+          title: 'Validation Error',
+          message: 'Appointment date cannot be in the past.',
+          type: 'error'
+        });
+        return;
+      }
+    }
+
+    if (formData.consultationFee !== undefined && Number(formData.consultationFee) < 0) {
+      addToast({
+        title: 'Validation Error',
+        message: 'Consultation fee cannot be negative.',
+        type: 'error'
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -264,6 +287,7 @@ export const AppointmentBooking = () => {
             <Input
               label="Consultation Date"
               type="date"
+              min={new Date().toISOString().split('T')[0]}
               required
               value={formData.appointmentDate}
               onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
@@ -304,6 +328,7 @@ export const AppointmentBooking = () => {
             <Input
               label="Consultation Fee (₹)"
               type="number"
+              min="0"
               value={formData.consultationFee}
               onChange={(e) => setFormData({ ...formData, consultationFee: Number(e.target.value) })}
             />

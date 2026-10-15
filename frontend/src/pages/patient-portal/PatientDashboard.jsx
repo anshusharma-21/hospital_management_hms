@@ -41,6 +41,7 @@ export const PatientDashboard = () => {
   const [labOrders, setLabOrders] = useState([]);
   const [radiologyOrders, setRadiologyOrders] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [latestVitals, setLatestVitals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -61,12 +62,13 @@ export const PatientDashboard = () => {
       setPatientData(pat);
 
       // 2. Concurrently fetch this patient's medical records
-      const [appRes, rxRes, labRes, radRes, invRes] = await Promise.allSettled([
+      const [appRes, rxRes, labRes, radRes, invRes, vitalsRes] = await Promise.allSettled([
         api.get('/appointments'),
         api.get('/clinical/prescriptions'),
         api.get('/diagnostics/lab-orders'),
         api.get('/diagnostics/radiology-orders'),
-        api.get('/billing/invoices')
+        api.get('/billing/invoices'),
+        api.get(`/clinical/vitals/${pat._id}`)
       ]);
 
       if (appRes.status === 'fulfilled' && appRes.value.data?.success) {
@@ -84,6 +86,12 @@ export const PatientDashboard = () => {
       if (invRes.status === 'fulfilled' && invRes.value.data?.success) {
         setInvoices(invRes.value.data.data || []);
       }
+      if (vitalsRes.status === 'fulfilled' && vitalsRes.value.data?.success) {
+        const vitalsList = vitalsRes.value.data.data || [];
+        if (vitalsList.length > 0) {
+          setLatestVitals(vitalsList[0]);
+        }
+      }
     } catch (err) {
       console.error('Error loading patient dashboard:', err);
       setError('Unable to load your health records. Please ensure you are logged into a registered patient account.');
@@ -100,10 +108,11 @@ export const PatientDashboard = () => {
     return 'Good evening';
   };
 
-  // Upcoming appointment logic: find first non-cancelled upcoming or scheduled
+  // Upcoming appointment logic: strictly exclude Completed, Cancelled, and past appointments
   const upcomingAppointment = appointments.find(
-    (a) => !['Cancelled', 'Completed', 'No-Show'].includes(a.status)
-  ) || appointments[0];
+    (a) => !['Cancelled', 'Completed', 'No-Show'].includes(a.status) && new Date(a.appointmentDate) >= new Date(new Date().setHours(0, 0, 0, 0))
+  ) || null;
+
 
   // Billing calculations
   const totalBilled = invoices.reduce((sum, inv) => sum + (Number(inv.grandTotal) || 0), 0);
@@ -261,99 +270,130 @@ export const PatientDashboard = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          {/* 1. Blood Pressure */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blood Pressure</span>
-              <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-700">
-                <Heart className="w-3.5 h-3.5" />
+        {!latestVitals ? (
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-700">No Clinical Vitals Recorded Yet</p>
+                <p className="text-[11px] text-slate-500">Vital signs recorded by nursing staff during intake or consultation will appear here in real time.</p>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 tracking-tight">120/80</span>
-              <span className="text-[10px] text-slate-400 ml-1">mmHg</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold text-emerald-700">Optimal Range</span>
-            </div>
+            {patientData.bloodGroup && (
+              <div className="text-right shrink-0">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Blood Group</span>
+                <span className="text-base font-black text-rose-600">{patientData.bloodGroup}</span>
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            {/* 1. Blood Pressure */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blood Pressure</span>
+                <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center text-teal-700">
+                  <Heart className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-black text-slate-900 tracking-tight">
+                  {latestVitals.bloodPressureSystolic && latestVitals.bloodPressureDiastolic
+                    ? `${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic}`
+                    : '--/--'}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1">mmHg</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-emerald-700">Recorded Intake</span>
+              </div>
+            </div>
 
-          {/* 2. Heart Rate / Pulse */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Heart Rate</span>
-              <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-                <Activity className="w-3.5 h-3.5" />
+            {/* 2. Heart Rate / Pulse */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Heart Rate</span>
+                <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
+                  <Activity className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-black text-slate-900 tracking-tight">
+                  {latestVitals.pulse || '--'}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1">bpm</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-emerald-700">Pulse</span>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 tracking-tight">72</span>
-              <span className="text-[10px] text-slate-400 ml-1">bpm</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold text-emerald-700">Steady Rhythm</span>
-            </div>
-          </div>
 
-          {/* 3. Blood Group */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blood Group</span>
-              <div className="w-7 h-7 rounded-lg bg-rose-100/60 flex items-center justify-center text-rose-700">
-                <Droplet className="w-3.5 h-3.5" />
+            {/* 3. Blood Group */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blood Group</span>
+                <div className="w-7 h-7 rounded-lg bg-rose-100/60 flex items-center justify-center text-rose-700">
+                  <Droplet className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-black text-rose-600 tracking-tight">
+                  {patientData.bloodGroup || 'Not Recorded'}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1">Type</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-slate-600">Blood Profile</span>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-rose-600 tracking-tight">
-                {patientData.bloodGroup || 'O+'}
-              </span>
-              <span className="text-[10px] text-slate-400 ml-1">Type</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold text-slate-600">Rh Compatible</span>
-            </div>
-          </div>
 
-          {/* 4. Oxygen (SpO2) */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SpO2 Oxygen</span>
-              <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-700">
-                <Wind className="w-3.5 h-3.5" />
+            {/* 4. Oxygen (SpO2) */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SpO2 Oxygen</span>
+                <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-700">
+                  <Wind className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-black text-slate-900 tracking-tight">
+                  {latestVitals.spo2 ? `${latestVitals.spo2}%` : '--'}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1">Pulse Oximetry</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-emerald-700">Oxygen Saturation</span>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 tracking-tight">98%</span>
-              <span className="text-[10px] text-slate-400 ml-1">Arterial</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold text-emerald-700">Normal Oxygen</span>
-            </div>
-          </div>
 
-          {/* 5. BMI / Body Index */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors col-span-2 sm:col-span-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Body Mass (BMI)</span>
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-700">
-                <Stethoscope className="w-3.5 h-3.5" />
+            {/* 5. BMI / Body Index */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-teal-300 transition-colors col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Body Mass (BMI)</span>
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-700">
+                  <Stethoscope className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-black text-slate-900 tracking-tight">
+                  {latestVitals.bmi || (latestVitals.weight && latestVitals.height ? (latestVitals.weight / ((latestVitals.height/100)**2)).toFixed(1) : '--')}
+                </span>
+                <span className="text-[10px] text-slate-400 ml-1">kg/m²</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-indigo-700">Clinical Ratio</span>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 tracking-tight">21.8</span>
-              <span className="text-[10px] text-slate-400 ml-1">kg/m²</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold text-indigo-700">Healthy Range</span>
-            </div>
           </div>
-        </div>
+        )}
+
       </div>
 
       {/* 3. Actionable Care Grid: Upcoming Consultation + Active Medications */}

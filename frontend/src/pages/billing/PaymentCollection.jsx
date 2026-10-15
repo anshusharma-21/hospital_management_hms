@@ -219,28 +219,50 @@ export const PaymentCollection = () => {
               </div>
 
               <form onSubmit={handleProcessPayment} className="space-y-4 text-xs">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Collection Amount (₹)</label>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="number"
-                      min="1"
-                      max={selectedInvoice.balanceDue !== undefined ? selectedInvoice.balanceDue : (selectedInvoice.balanceAmount || 0)}
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="font-mono font-bold text-base text-teal-800"
-                      required
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setPaymentAmount(selectedInvoice.balanceDue !== undefined ? selectedInvoice.balanceDue : (selectedInvoice.balanceAmount || 0))}
-                    >
-                      Full Balance
-                    </Button>
-                  </div>
-                </div>
+                {(() => {
+                  const currentBalance = selectedInvoice.balanceDue !== undefined ? selectedInvoice.balanceDue : (selectedInvoice.balanceAmount || 0);
+                  const isOverpaid = Number(paymentAmount) > currentBalance;
+                  return (
+                    <>
+                      {isOverpaid && (
+                        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-between gap-2">
+                          <span className="font-semibold">
+                            Amount (₹{paymentAmount}) exceeds outstanding balance of ₹{currentBalance}.
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setPaymentAmount(currentBalance)}
+                          >
+                            Cap to ₹{currentBalance}
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Collection Amount (₹)</label>
+                        <div className="flex gap-2">
+                          <Input 
+                            type="number"
+                            min="1"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            className={`font-mono font-bold text-base ${isOverpaid ? 'border-amber-400 text-amber-900 bg-amber-50/30' : 'text-teal-800'}`}
+                            required
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setPaymentAmount(currentBalance)}
+                          >
+                            Full Balance
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Payment Mode</label>
@@ -285,14 +307,14 @@ export const PaymentCollection = () => {
                 <div className="bg-teal-50/50 p-3 rounded-xl border border-teal-200 flex justify-between items-center text-xs">
                   <span className="text-teal-900 font-medium">Remaining balance after this transaction:</span>
                   <span className="font-mono font-bold text-teal-800 text-sm">
-                    ₹{Math.max(0, selectedInvoice.balanceAmount - Number(paymentAmount || 0))}
+                    ₹{Math.max(0, (selectedInvoice.balanceDue !== undefined ? selectedInvoice.balanceDue : (selectedInvoice.balanceAmount || 0)) - Number(paymentAmount || 0))}
                   </span>
                 </div>
 
                 <Button 
                   type="submit" 
                   className="w-full mt-2" 
-                  disabled={selectedInvoice.balanceAmount <= 0}
+                  disabled={(selectedInvoice.balanceDue !== undefined ? selectedInvoice.balanceDue : (selectedInvoice.balanceAmount || 0)) <= 0}
                 >
                   <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirm Payment & Print Money Receipt
                 </Button>

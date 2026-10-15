@@ -37,8 +37,9 @@ export const PatientMedicalHistory = () => {
     try {
       const res = await api.get('/patients/me/timeline');
       if (res.data?.success) {
-        setTimeline(res.data.data || []);
+        setTimeline(res.data.data || res.data.timeline || []);
       }
+
     } catch (err) {
       console.error('Failed to load medical history timeline:', err);
       addToast('Could not load clinical history timeline', 'error');

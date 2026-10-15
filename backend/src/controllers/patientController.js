@@ -115,11 +115,50 @@ exports.createPatient = async (req, res, next) => {
       primaryBranch
     } = req.body;
 
+    // Strict Phone Number Validation (10 digits)
+    if (!phone || typeof phone !== 'string') {
+      return res.status(400).json({ success: false, error: 'Valid mobile number is required' });
+    }
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        error: `Mobile number must be exactly 10 digits (received ${cleanPhone.length} digits)`
+      });
+    }
+
+    // Strict Date of Birth and Age Validation
+    let effectiveAge = age !== undefined && age !== '' ? Number(age) : undefined;
+    if (dob) {
+      const birthDate = new Date(dob);
+      if (isNaN(birthDate.getTime())) {
+        return res.status(400).json({ success: false, error: 'Invalid date of birth' });
+      }
+      if (birthDate > new Date()) {
+        return res.status(400).json({ success: false, error: 'Date of birth cannot be in the future' });
+      }
+      // Derive age accurately
+      const today = new Date();
+      let derivedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        derivedAge--;
+      }
+      effectiveAge = Math.max(0, derivedAge);
+    }
+
+    if (effectiveAge !== undefined && (effectiveAge < 0 || effectiveAge > 125)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient age must be between 0 and 125 years'
+      });
+    }
+
     // Check for duplicate phone or nationalId in this tenant
     const existing = await Patient.findOne({
       tenant: req.tenantId,
       $or: [
-        { phone: phone.trim() },
+        { phone: cleanPhone },
         ...(nationalId ? [{ nationalId: nationalId.trim() }] : [])
       ]
     });
@@ -151,11 +190,11 @@ exports.createPatient = async (req, res, next) => {
       firstName,
       lastName,
       dob,
-      age,
+      age: effectiveAge,
       gender,
       bloodGroup: bloodGroup || 'Unknown',
       maritalStatus: maritalStatus || 'Single',
-      phone: phone.trim(),
+      phone: cleanPhone,
       alternatePhone,
       email,
       address,
@@ -469,6 +508,7 @@ exports.getPatientTimeline = async (req, res, next) => {
       success: true,
       patient,
       count: timeline.length,
+      data: timeline,
       timeline,
       aggregates: {
         totalEncounters: encounters.length,
@@ -477,6 +517,7 @@ exports.getPatientTimeline = async (req, res, next) => {
         totalInvoices: invoices.length
       }
     });
+
   } catch (err) {
     next(err);
   }

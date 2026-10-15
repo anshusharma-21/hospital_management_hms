@@ -25,6 +25,13 @@ import {
   ShieldCheck,
   ArrowRight
 } from 'lucide-react';
+import {
+  validateVitalsFrontend,
+  checkMedicationAllergies,
+  isDrugAllergyConflict,
+  PHYSIOLOGICAL_BOUNDS,
+  calculatePrescriptionQuantity
+} from '../../utils/clinicalSafety';
 
 export const ConsultationEncounter = () => {
   const [searchParams] = useSearchParams();
@@ -67,6 +74,13 @@ export const ConsultationEncounter = () => {
   const [radiologySelected, setRadiologySelected] = useState([]);
   const [followUpDays, setFollowUpDays] = useState('7');
   const [successModal, setSuccessModal] = useState(false);
+
+  // Clinical Safety & Drug-Allergy States
+  const [allergyModalOpen, setAllergyModalOpen] = useState(false);
+  const [allergyConflicts, setAllergyConflicts] = useState([]);
+  const [allergyOverrideReason, setAllergyOverrideReason] = useState('');
+  const [allergyOverrideAcknowledged, setAllergyOverrideAcknowledged] = useState(false);
+  const [vitalErrors, setVitalErrors] = useState([]);
 
   useEffect(() => {
     const initEncounter = async () => {
@@ -150,9 +164,48 @@ export const ConsultationEncounter = () => {
     }
   };
 
-  const handleFinalizeEncounter = async (e) => {
-    e.preventDefault();
+  const handleFinalizeEncounter = async (e, override = false) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!patient || !encounter) return;
+
+    // 0. Physiological Vitals Pre-Check
+    const vErrors = validateVitalsFrontend(vitals);
+    if (vErrors.length > 0) {
+      setVitalErrors(vErrors);
+      addToast({
+        title: 'Clinical Safety: Out-of-Range Vitals',
+        message: vErrors[0],
+        type: 'error'
+      });
+      return;
+    }
+    setVitalErrors([]);
+
+    // Filter valid medications
+    const validMedications = medications
+      .filter((m) => m && (m.medicineName?.trim() || m.dosage?.trim()))
+      .map((m) => {
+        const qty = m.quantity ? Number(m.quantity) : calculatePrescriptionQuantity(m.dosage, m.frequency, m.duration);
+        return {
+          ...m,
+          medicineName: m.medicineName?.trim() || 'Prescribed Medicine',
+          dosage: m.dosage?.trim() || '1 Tab',
+          form: m.form || 'Tablet',
+          frequency: m.frequency || 'Twice daily (BD)',
+          duration: m.duration?.trim() || '5 Days',
+          quantity: qty,
+          instructions: m.instructions?.trim() || 'After Food'
+        };
+      });
+
+
+    // Drug-Allergy Safety Check
+    const conflicts = checkMedicationAllergies(validMedications, patient.allergies || []);
+    if (conflicts.length > 0 && !override && !allergyOverrideAcknowledged) {
+      setAllergyConflicts(conflicts);
+      setAllergyModalOpen(true);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -167,33 +220,26 @@ export const ConsultationEncounter = () => {
         status: 'Completed'
       });
 
-      // 2. Record Vitals
-      await api.post('/clinical/vitals', {
-        patient: patient._id,
-        encounter: encounter._id,
-        ...vitals
-      });
+      // 2. Record Vitals (only if at least one vital was entered)
+      const hasAnyVital = Object.values(vitals).some((v) => v !== '' && v !== null && v !== undefined);
+      if (hasAnyVital) {
+        await api.post('/clinical/vitals', {
+          patient: patient._id,
+          encounter: encounter._id,
+          ...vitals
+        });
+      }
 
       // 3. Create e-Prescription (filter empty rows & ensure safe clinical defaults)
-      const validMedications = medications
-        .filter((m) => m && (m.medicineName?.trim() || m.dosage?.trim()))
-        .map((m) => ({
-          ...m,
-          medicineName: m.medicineName?.trim() || 'Prescribed Medicine',
-          dosage: m.dosage?.trim() || '1 Tab',
-          form: m.form || 'Tablet',
-          frequency: m.frequency || 'Twice daily (BD)',
-          duration: m.duration?.trim() || '5 Days',
-          instructions: m.instructions?.trim() || 'After Food'
-        }));
-
       if (validMedications.length > 0) {
         await api.post('/clinical/prescriptions', {
           patient: patient._id,
           encounter: encounter._id,
           diagnosis: diagnosis || 'Clinical evaluation & symptom management',
           medications: validMedications,
-          generalAdvice: 'Adequate hydration, warm oral fluids, take medicines on time.'
+          generalAdvice: 'Adequate hydration, warm oral fluids, take medicines on time.',
+          allergyOverrideAcknowledged: override || allergyOverrideAcknowledged,
+          allergyOverrideReason: allergyOverrideReason || 'Prescribing clinician acknowledged clinical indication'
         });
       }
 
@@ -332,22 +378,37 @@ export const ConsultationEncounter = () => {
       <form onSubmit={handleFinalizeEncounter} className="space-y-6">
         {/* Row 1: Vitals strip */}
         <Card title="Patient Vital Signs (Bedside / Triage)" headerIcon={Activity}>
+          {vitalErrors.length > 0 && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{vitalErrors.join(' • ')}</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             <Input
               label="BP Systolic"
               type="number"
+              min="50"
+              max="260"
+              placeholder="50-260"
               value={vitals.bloodPressureSystolic}
               onChange={(e) => setVitals({ ...vitals, bloodPressureSystolic: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="BP Diastolic"
               type="number"
+              min="30"
+              max="160"
+              placeholder="30-160"
               value={vitals.bloodPressureDiastolic}
               onChange={(e) => setVitals({ ...vitals, bloodPressureDiastolic: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Pulse (bpm)"
               type="number"
+              min="30"
+              max="250"
+              placeholder="30-250"
               value={vitals.pulse}
               onChange={(e) => setVitals({ ...vitals, pulse: e.target.value === '' ? '' : Number(e.target.value) })}
             />
@@ -355,24 +416,36 @@ export const ConsultationEncounter = () => {
               label="Temp (°F)"
               type="number"
               step="0.1"
+              min="85"
+              max="112"
+              placeholder="85-112"
               value={vitals.temperature}
               onChange={(e) => setVitals({ ...vitals, temperature: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="SpO2 (%)"
               type="number"
+              min="50"
+              max="100"
+              placeholder="50-100"
               value={vitals.spo2}
               onChange={(e) => setVitals({ ...vitals, spo2: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Resp Rate"
               type="number"
+              min="4"
+              max="80"
+              placeholder="4-80"
               value={vitals.respiratoryRate}
               onChange={(e) => setVitals({ ...vitals, respiratoryRate: e.target.value === '' ? '' : Number(e.target.value) })}
             />
             <Input
               label="Sugar (mg/dL)"
               type="number"
+              min="20"
+              max="1000"
+              placeholder="20-1000"
               value={vitals.bloodSugarRandom}
               onChange={(e) => setVitals({ ...vitals, bloodSugarRandom: e.target.value === '' ? '' : Number(e.target.value) })}
             />
@@ -381,6 +454,7 @@ export const ConsultationEncounter = () => {
               type="number"
               min="0"
               max="10"
+              placeholder="0-10"
               value={vitals.painScore}
               onChange={(e) => setVitals({ ...vitals, painScore: e.target.value === '' ? '' : Number(e.target.value) })}
             />
@@ -476,6 +550,12 @@ export const ConsultationEncounter = () => {
                       setMedications(updated);
                     }}
                   />
+                  {med.medicineName?.trim() && patient?.allergies?.some((a) => isDrugAllergyConflict(med.medicineName, typeof a === 'string' ? a : a?.allergen)) && (
+                    <span className="text-[10px] text-rose-700 font-bold flex items-center gap-1 mt-1 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                      Allergy Alert: Conflicting with documented allergy!
+                    </span>
+                  )}
                 </div>
                 <div>
                   <Input
@@ -677,6 +757,91 @@ export const ConsultationEncounter = () => {
           ))}
         </div>
       </Drawer>
+
+      {/* Critical Drug-Allergy Safety Alert Modal */}
+      {allergyModalOpen && (
+        <Modal
+          isOpen={allergyModalOpen}
+          onClose={() => setAllergyModalOpen(false)}
+          title="Critical Clinical Safety Alert: Drug-Allergy Conflict"
+          maxWidth="max-w-lg"
+        >
+          <div className="space-y-4 py-2">
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm text-rose-700">
+                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                <span>Documented Drug-Allergy Contradiction Detected!</span>
+              </div>
+              <p className="text-rose-800">
+                The patient <strong>{patient?.fullName}</strong> has a documented allergy that conflicts with one or more prescribed medications. Prescribing this can cause severe adverse reactions or anaphylaxis.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Conflicting Prescriptions:</h4>
+              {allergyConflicts.map((c, i) => (
+                <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <div className="flex justify-between font-bold">
+                    <span className="text-rose-700">Prescribed: {c.medicineName}</span>
+                    <span className="text-slate-600">Allergen: {c.allergen}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">{c.reason}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
+              <label className="font-bold text-slate-800 block">
+                Clinical Override Justification (Required if proceeding):
+              </label>
+              <textarea
+                rows="2"
+                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                placeholder="State clinical rationale (e.g. Desensitization protocol active, alternative contraindicated)..."
+                value={allergyOverrideReason}
+                onChange={(e) => setAllergyOverrideReason(e.target.value)}
+              />
+              <label className="flex items-start gap-2 cursor-pointer mt-2">
+                <input
+                  type="checkbox"
+                  checked={allergyOverrideAcknowledged}
+                  onChange={(e) => setAllergyOverrideAcknowledged(e.target.checked)}
+                  className="rounded text-teal-600 focus:ring-teal-500 mt-0.5"
+                />
+                <span className="text-[11px] text-slate-600 leading-tight">
+                  I certify as the attending clinician that I have evaluated the allergy risk and authorize this prescription under documented clinical override.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="md"
+                className="flex-1"
+                onClick={() => {
+                  setAllergyModalOpen(false);
+                  setSubmitting(false);
+                }}
+              >
+                Modify Prescription
+              </Button>
+              <Button
+                variant="danger"
+                size="md"
+                className="flex-1"
+                disabled={!allergyOverrideAcknowledged || !allergyOverrideReason.trim()}
+                onClick={() => {
+                  setAllergyModalOpen(false);
+                  handleFinalizeEncounter(null, true);
+                }}
+              >
+                Sign with Clinical Override
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Success Confirmation Modal */}
       {successModal && (

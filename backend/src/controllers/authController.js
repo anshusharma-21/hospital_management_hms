@@ -2,6 +2,13 @@ const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 const Patient = require('../models/Patient');
 const AuditLog = require('../models/AuditLog');
+const PatientOTP = require('../models/PatientOTP');
+const crypto = require('crypto');
+
+function hashOTP(phone, otpCode) {
+  return crypto.createHash('sha256').update(`${phone.trim()}:${otpCode.toString().trim()}`).digest('hex');
+}
+
 
 // @desc    Login user & get JWT token
 // @route   POST /api/v1/auth/login
@@ -26,7 +33,7 @@ exports.login = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials. User not found.'
+        error: 'Invalid credentials. Please check your email and password.'
       });
     }
 
@@ -34,9 +41,10 @@ exports.login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials. Password incorrect.'
+        error: 'Invalid credentials. Please check your email and password.'
       });
     }
+
 
     if (user.status !== 'active') {
       return res.status(403).json({
@@ -83,6 +91,78 @@ exports.login = async (req, res, next) => {
   }
 };
 
+// @desc    Generate & send OTP for patient login
+// @route   POST /api/v1/auth/send-patient-otp
+// @access  Public
+exports.sendPatientOTP = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !phone.toString().trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter registered 10-digit mobile number'
+      });
+    }
+
+    const cleanPhone = phone.toString().trim();
+
+    // Check if patient exists
+    const patient = await Patient.findOne({ phone: cleanPhone });
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        error: 'No patient record found matching this mobile number. Please register at front desk.'
+      });
+    }
+
+    // Rate limiting: check if OTP requested within last 45 seconds
+    const recentOTP = await PatientOTP.findOne({
+      phone: cleanPhone,
+      createdAt: { $gte: new Date(Date.now() - 45 * 1000) }
+    });
+
+    if (recentOTP) {
+      return res.status(429).json({
+        success: false,
+        error: 'Please wait at least 45 seconds before requesting a new OTP.'
+      });
+    }
+
+    // Generate random 6-digit cryptographic OTP
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+    const otpHash = hashOTP(cleanPhone, otpCode);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Invalidate previous unused OTPs for this phone
+    await PatientOTP.updateMany({ phone: cleanPhone, isUsed: false }, { isUsed: true });
+
+    await PatientOTP.create({
+      phone: cleanPhone,
+      otpHash,
+      expiresAt
+    });
+
+    const isSmsProviderConfigured = Boolean(process.env.SMS_API_KEY || process.env.TWILIO_AUTH_TOKEN);
+
+    // Development/test log (never in production)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH-DEV] Secure OTP generated for ${cleanPhone} (Valid 5m): ${otpCode}`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: isSmsProviderConfigured
+        ? 'OTP verification code sent via SMS.'
+        : 'OTP generated. SMS gateway is not configured (simulation mode).',
+      expiresInSeconds: 300,
+      smsConfigured: isSmsProviderConfigured,
+      devCode: (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') ? otpCode : undefined
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Patient Portal OTP / Phone Login
 // @route   POST /api/v1/auth/patient-login
 // @access  Public
@@ -97,16 +177,19 @@ exports.patientLogin = async (req, res, next) => {
       });
     }
 
-    // In production, OTP is strictly required
-    if (process.env.NODE_ENV === 'production' && (!otp || !otp.toString().trim())) {
+    const cleanPhone = phone.toString().trim();
+
+    if (!otp || !otp.toString().trim()) {
       return res.status(400).json({
         success: false,
         error: 'OTP verification code is required'
       });
     }
 
+    const enteredOtp = otp.toString().trim();
+
     // Locate patient record by phone
-    const patient = await Patient.findOne({ phone: phone.trim() })
+    const patient = await Patient.findOne({ phone: cleanPhone })
       .populate('tenant', 'name legalName branding settings email phone address hospitalType website');
 
     if (!patient) {
@@ -116,13 +199,61 @@ exports.patientLogin = async (req, res, next) => {
       });
     }
 
+    // Retrieve active OTP record
+    const otpRecord = await PatientOTP.findOne({
+      phone: cleanPhone,
+      isUsed: false
+    }).sort({ createdAt: -1 });
+
+    // Validate OTP session existence
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'No active OTP verification session found. Please request an OTP first.'
+      });
+    }
+
+    // Check expiry
+    if (new Date() > otpRecord.expiresAt) {
+      return res.status(400).json({
+        success: false,
+        error: 'OTP verification code has expired. Please request a new code.'
+      });
+    }
+
+    // Check attempt limit
+    if (otpRecord.attempts >= otpRecord.maxAttempts) {
+      return res.status(429).json({
+        success: false,
+        error: 'Maximum verification attempts exceeded. Please request a new OTP.'
+      });
+    }
+
+    // Check cryptographic hash match
+    const expectedHash = hashOTP(cleanPhone, enteredOtp);
+    const isHashMatch = (expectedHash === otpRecord.otpHash);
+
+    if (!isHashMatch) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      const remaining = otpRecord.maxAttempts - otpRecord.attempts;
+      return res.status(401).json({
+        success: false,
+        error: `Invalid OTP verification code. ${remaining > 0 ? `${remaining} attempt(s) remaining.` : 'Please request a new OTP.'}`
+      });
+    }
+
+    // Mark OTP as used to prevent replay attacks
+    otpRecord.isUsed = true;
+    await otpRecord.save();
+
     // Find or create virtual patient user for portal session
-    let user = await User.findOne({ email: `${phone.trim()}@patient.hospitalvision.local` });
+    let user = await User.findOne({ email: `${cleanPhone}@patient.hospitalvision.local` });
 
     if (!user) {
       user = await User.create({
         name: patient.fullName,
-        email: `${phone.trim()}@patient.hospitalvision.local`,
+        email: `${cleanPhone}@patient.hospitalvision.local`,
         phone: patient.phone,
         password: 'PatientPortal2026!',
         role: 'patient',
@@ -160,6 +291,7 @@ exports.patientLogin = async (req, res, next) => {
     next(err);
   }
 };
+
 
 // @desc    Get currently logged in user
 // @route   GET /api/v1/auth/me

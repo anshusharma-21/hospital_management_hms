@@ -1399,12 +1399,13 @@ export const Landing = () => {
             </span>
             <span className="hidden sm:inline text-slate-300">•</span>
             <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> HIPAA &amp; NABH Certified
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> Designed for HIPAA &amp; NABH Architecture
             </span>
             <span className="hidden sm:inline text-slate-300">•</span>
             <span className="flex items-center gap-1.5 text-slate-600 font-medium">
               <Lock className="w-3.5 h-3.5 text-teal-600" /> Multi-Tenant Data Isolation
             </span>
+
           </div>
         </div>
       </ScrollRevealSection>
@@ -1521,13 +1522,14 @@ export const Landing = () => {
               </p>
               <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1">
                 <span className="flex items-center gap-1.5 text-teal-300 font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" /> HIPAA Compliant
+                  <ShieldCheck className="w-3.5 h-3.5" /> Healthcare Privacy Standards
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5 text-cyan-300 font-semibold">
-                  <Lock className="w-3.5 h-3.5" /> NABH Standards
+                  <Lock className="w-3.5 h-3.5" /> Tenant Isolation
                 </span>
               </div>
+
             </div>
 
             {/* Column 2: Product */}

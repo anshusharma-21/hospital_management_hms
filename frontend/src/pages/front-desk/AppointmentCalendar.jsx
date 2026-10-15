@@ -61,6 +61,11 @@ export const AppointmentCalendar = () => {
 
   const handleCheckIn = async (appointmentId) => {
     try {
+      // 1. Immediate optimistic UI update
+      setAppointments((prev) =>
+        prev.map((app) => (app._id === appointmentId ? { ...app, status: 'Checked-In' } : app))
+      );
+
       const res = await api.put(`/appointments/${appointmentId}/status`, { status: 'Checked-In' });
       if (res.data.success) {
         addToast({
@@ -68,9 +73,12 @@ export const AppointmentCalendar = () => {
           message: 'Patient added to waiting queue for consultation.',
           type: 'success'
         });
-        fetchAppointments();
+        // 2. Fetch authoritative state from backend
+        await fetchAppointments();
       }
     } catch (err) {
+      // Revert on failure
+      await fetchAppointments();
       addToast({
         title: 'Check-in Error',
         message: err.response?.data?.error || 'Failed to check in',
@@ -78,6 +86,7 @@ export const AppointmentCalendar = () => {
       });
     }
   };
+
 
   const columns = [
     {

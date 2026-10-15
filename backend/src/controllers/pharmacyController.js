@@ -173,7 +173,7 @@ exports.dispensePrescription = async (req, res, next) => {
 
         const qtyToDispense = Number(item.quantity) || 1;
         const unitPrice = medicine?.unitPrice || Number(item.unitPrice) || 10;
-        const taxPercent = medicine?.taxPercent || 12;
+        const taxPercent = item.taxPercent !== undefined ? Number(item.taxPercent) : (medicine?.taxPercent !== undefined ? Number(medicine.taxPercent) : 5);
 
         if (medicine) {
           medicine.stockQuantity = Math.max(0, medicine.stockQuantity - qtyToDispense);
@@ -186,6 +186,7 @@ exports.dispensePrescription = async (req, res, next) => {
         }
 
         const lineTotal = unitPrice * qtyToDispense;
+        const lineTaxAmount = (lineTotal * taxPercent) / 100;
         subtotal += lineTotal;
 
         invoiceItems.push({
@@ -195,14 +196,15 @@ exports.dispensePrescription = async (req, res, next) => {
           quantity: qtyToDispense,
           unitPrice,
           taxPercent,
-          taxAmount: (lineTotal * taxPercent) / 100,
-          totalAmount: lineTotal + (lineTotal * taxPercent) / 100
+          taxAmount: lineTaxAmount,
+          totalAmount: lineTotal + lineTaxAmount
         });
       }
     }
 
+    const discountAmount = Number(req.body.discount) || 0;
     const totalTax = invoiceItems.reduce((acc, curr) => acc + curr.taxAmount, 0);
-    const grandTotal = Math.round(subtotal + totalTax);
+    const grandTotal = Math.round(subtotal - discountAmount + totalTax);
 
     // Create Invoice
     const count = await Invoice.countDocuments({ tenant: req.tenantId });
@@ -217,6 +219,7 @@ exports.dispensePrescription = async (req, res, next) => {
       billingType: 'Pharmacy POS',
       items: invoiceItems,
       subtotal,
+      totalDiscount: discountAmount,
       totalTax,
       grandTotal,
       paidAmount: grandTotal,

@@ -101,9 +101,30 @@ export const PatientRegistration = () => {
     const dobVal = e.target.value;
     let derivedAge = '';
     if (dobVal) {
-      const diffMs = Date.now() - new Date(dobVal).getTime();
-      const ageDate = new Date(diffMs);
-      derivedAge = Math.abs(ageDate.getUTCFullYear() - 1970);
+      const birthDate = new Date(dobVal);
+      const today = new Date();
+      if (birthDate > today) {
+        addToast({
+          title: 'Invalid Date of Birth',
+          message: 'Date of birth cannot be in the future',
+          type: 'error'
+        });
+        setFormData((prev) => ({ ...prev, dob: '', age: '' }));
+        return;
+      }
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      derivedAge = Math.max(0, age);
+      if (derivedAge > 125) {
+        addToast({
+          title: 'Implausible Age',
+          message: 'Calculated age exceeds 125 years. Please verify date of birth.',
+          type: 'warning'
+        });
+      }
     }
     setFormData((prev) => ({ ...prev, dob: dobVal, age: derivedAge }));
   };
@@ -134,6 +155,24 @@ export const PatientRegistration = () => {
       addToast({
         title: 'Validation Error',
         message: 'Please provide patient first name and mobile number',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formData.dob && new Date(formData.dob) > new Date()) {
+      addToast({
+        title: 'Validation Error',
+        message: 'Date of birth cannot be in the future',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formData.age !== '' && (Number(formData.age) < 0 || Number(formData.age) > 125)) {
+      addToast({
+        title: 'Validation Error',
+        message: 'Patient age must be between 0 and 125 years',
         type: 'error'
       });
       return;
@@ -304,12 +343,15 @@ export const PatientRegistration = () => {
             <Input
               label="Date of Birth"
               type="date"
+              max={new Date().toISOString().split('T')[0]}
               value={formData.dob}
               onChange={handleDobChange}
             />
             <Input
               label="Age (Years)"
               type="number"
+              min="0"
+              max="125"
               value={formData.age}
               onChange={(e) => setFormData({ ...formData, age: e.target.value })}
               placeholder="e.g. 35"

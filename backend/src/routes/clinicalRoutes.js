@@ -8,7 +8,8 @@ const {
   recordVitals,
   getPatientVitals,
   createPrescription,
-  getPrescriptions
+  getPrescriptions,
+  checkDrugAllergies
 } = require('../controllers/clinicalController');
 const { protect } = require('../middleware/authMiddleware');
 const { enforceTenant } = require('../middleware/tenantMiddleware');
@@ -26,6 +27,7 @@ router.route('/encounters/:id')
 
 router.post('/vitals', recordVitals);
 router.get('/vitals/:patientId', getPatientVitals);
+router.post('/check-allergy', checkDrugAllergies);
 
 router.route('/prescriptions')
   .get(getPrescriptions)

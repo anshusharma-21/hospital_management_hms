@@ -5,6 +5,7 @@ const Encounter = require('../models/Encounter');
 const Admission = require('../models/Admission');
 const Bed = require('../models/Bed');
 const Invoice = require('../models/Invoice');
+const Payment = require('../models/Payment');
 const LabOrder = require('../models/LabOrder');
 const RadiologyOrder = require('../models/RadiologyOrder');
 const Medicine = require('../models/Medicine');
@@ -50,9 +51,15 @@ exports.getDashboardStats = async (req, res, next) => {
 
     // Active branch context for operational metrics
     const branchFilter = req.branchId ? { branch: req.branchId } : {};
-    let invoiceMatch = { tenant: tenantId, createdAt: { $gte: startOfDay, $lte: endOfDay } };
+
+    // Payment-authoritative revenue aggregation for today
+    let paymentMatch = {
+      tenant: new mongoose.Types.ObjectId(tenantId),
+      status: 'Completed',
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    };
     if (req.branchId && mongoose.Types.ObjectId.isValid(req.branchId)) {
-      invoiceMatch.branch = new mongoose.Types.ObjectId(req.branchId);
+      paymentMatch.branch = new mongoose.Types.ObjectId(req.branchId);
     }
 
     const patientBranchFilter = req.isSubBranch ? { primaryBranch: req.branchId } : {};
@@ -65,7 +72,7 @@ exports.getDashboardStats = async (req, res, next) => {
       activeAdmissions,
       availableBeds,
       totalBeds,
-      todayCollections,
+      todayPaymentsAgg,
       pendingLabOrders,
       criticalLabAlerts,
       lowStockMedicines,
@@ -86,9 +93,9 @@ exports.getDashboardStats = async (req, res, next) => {
       Admission.countDocuments({ tenant: tenantId, ...branchFilter, status: 'Admitted' }),
       Bed.countDocuments({ tenant: tenantId, ...branchFilter, status: 'Available' }),
       Bed.countDocuments({ tenant: tenantId, ...branchFilter }),
-      Invoice.aggregate([
-        { $match: invoiceMatch },
-        { $group: { _id: null, total: { $sum: '$paidAmount' } } }
+      Payment.aggregate([
+        { $match: paymentMatch },
+        { $group: { _id: null, total: { $sum: '$amountPaid' } } }
       ]),
       LabOrder.countDocuments({ tenant: tenantId, ...branchFilter, overallStatus: { $in: ['Ordered', 'Sample Collected', 'In-Processing'] } }),
       LabOrder.countDocuments({ tenant: tenantId, ...branchFilter, criticalAlert: true }),
@@ -96,7 +103,22 @@ exports.getDashboardStats = async (req, res, next) => {
       User.countDocuments({ tenant: tenantId, role: 'doctor' })
     ]);
 
-    const collectionAmount = todayCollections[0]?.total || 0;
+    let collectionAmount = todayPaymentsAgg[0]?.total || 0;
+    if (collectionAmount === 0) {
+      // Reconcile with invoices created & paid today as safety fallback
+      let invoiceMatch = {
+        tenant: new mongoose.Types.ObjectId(tenantId),
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      };
+      if (req.branchId && mongoose.Types.ObjectId.isValid(req.branchId)) {
+        invoiceMatch.branch = new mongoose.Types.ObjectId(req.branchId);
+      }
+      const invoiceAgg = await Invoice.aggregate([
+        { $match: invoiceMatch },
+        { $group: { _id: null, total: { $sum: '$paidAmount' } } }
+      ]);
+      collectionAmount = invoiceAgg[0]?.total || 0;
+    }
 
     res.status(200).json({
       success: true,

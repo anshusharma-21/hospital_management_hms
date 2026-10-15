@@ -28,8 +28,20 @@ const patientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  dob: Date,
-  age: Number,
+  dob: {
+    type: Date,
+    validate: {
+      validator: function(v) {
+        return !v || v <= new Date();
+      },
+      message: 'Date of birth cannot be in the future'
+    }
+  },
+  age: {
+    type: Number,
+    min: [0, 'Patient age cannot be negative'],
+    max: [125, 'Patient age cannot exceed 125 years']
+  },
   gender: {
     type: String,
     enum: ['Male', 'Female', 'Other'],

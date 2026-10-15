@@ -29,9 +29,20 @@ async function run() {
   for (const item of updates) {
     let user = await User.findOne({ email: item.email });
     if (!user) {
-      console.log(`User not found: ${item.email}`);
+      console.log(`User not found: ${item.email}. Creating...`);
+      user = await User.create({
+        name: item.email.split('@')[0].toUpperCase(),
+        email: item.email,
+        password: item.newPass,
+        role: item.role,
+        tenant: item.role === 'super_admin' ? null : tenant,
+        branch: item.role === 'super_admin' ? null : mainBranch?._id,
+        status: 'active'
+      });
+      console.log(`Created user ${user.name} (${item.email}) with role ${item.role}`);
       continue;
     }
+
 
     user.password = item.newPass;
     if (!user.tenant && tenant) user.tenant = tenant;
